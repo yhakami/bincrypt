@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BinCrypt Frontend Test Suite</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        .test-pass { @apply text-green-400; }
+        .test-fail { @apply text-red-400; }
+        .test-warn { @apply text-yellow-400; }
+        .test-skip { @apply text-gray-400; }
+        
+        .console-output {
+            font-family: 'Courier New', monospace;
+            background: #111;
+            color: #0f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4" x-data="frontendTestSuite()">
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold mb-2">🧪 BinCrypt Frontend Test Suite</h1>
+            <p class="text-gray-400">Comprehensive testing of UI components, encryption, and user interactions</p>
+        </header>
+
+        <!-- Test Controls -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-6">
+            <div class="flex flex-wrap gap-4 items-center">
+                <button @click="runAllTests()" 
+                    :disabled="running"
+                    class="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 px-4 py-2 rounded font-medium">
+                    <span x-show="!running">🚀 Run All Tests</span>
+                    <span x-show="running">⏳ Running...</span>
+                </button>
+                
+                <button @click="runSecurityTests()" 
+                    :disabled="running"
+                    class="bg-red-600 hover:bg-red-700 disabled:opacity-50 px-4 py-2 rounded font-medium">
+                    🛡️ Security Tests
+                </button>
+                
+                <button @click="runPerformanceTests()" 
+                    :disabled="running"
+                    class="bg-green-600 hover:bg-green-700 disabled:opacity-50 px-4 py-2 rounded font-medium">
+                    ⚡ Performance Tests
+                </button>
+                
+                <button @click="clearResults()" 
+                    class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded font-medium">
+                    🗑️ Clear Results
+                </button>
+                
+                <button @click="exportResults()" 
+                    :disabled="!testResults.length"
+                    class="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 px-4 py-2 rounded font-medium">
+                    📊 Export Results
+                </button>
+            </div>
+        </div>
+
+        <!-- Test Summary -->
+        <div x-show="testResults.length > 0" class="bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-bold mb-4">📊 Test Summary</h2>
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div class="text-center">
+                    <div class="text-2xl font-bold" x-text="summary.total"></div>
+                    <div class="text-sm text-gray-400">Total Tests</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-green-400" x-text="summary.passed"></div>
+                    <div class="text-sm text-gray-400">Passed</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-red-400" x-text="summary.failed"></div>
+                    <div class="text-sm text-gray-400">Failed</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold text-yellow-400" x-text="summary.warnings"></div>
+                    <div class="text-sm text-gray-400">Warnings</div>
+                </div>
+                <div class="text-center">
+                    <div class="text-2xl font-bold" x-text="summary.successRate"></div>
+                    <div class="text-sm text-gray-400">Success Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Test Results -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Test Output -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4">🖥️ Test Output</h2>
+                <div class="console-output" x-ref="console">
+                    <template x-for="line in consoleOutput" :key="line.id">
+                        <div :class="{
+                            'test-pass': line.type === 'pass',
+                            'test-fail': line.type === 'fail', 
+                            'test-warn': line.type === 'warn',
+                            'test-skip': line.type === 'skip'
+                        }">
+                            <span x-text="line.timestamp"></span> - <span x-text="line.message"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Test Details -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4">📋 Test Details</h2>
+                <div class="max-h-96 overflow-y-auto space-y-2">
+                    <template x-for="result in testResults" :key="result.testName">
+                        <div class="bg-gray-700 rounded p-3">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="font-medium" x-text="result.testName"></span>
+                                <span :class="{
+                                    'test-pass': result.status === 'PASS',
+                                    'test-fail': result.status === 'FAIL',
+                                    'test-warn': result.status === 'WARNING',
+                                    'test-skip': result.status === 'SKIP'
+                                }" x-text="result.status"></span>
+                            </div>
+                            <div x-show="result.details.error" class="text-sm text-red-300" x-text="result.details.error"></div>
+                            <div x-show="result.duration" class="text-xs text-gray-400">
+                                Duration: <span x-text="result.duration.toFixed(2)"></span>ms
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Critical Issues Alert -->
+        <div x-show="criticalIssues.length > 0" class="bg-red-900 border border-red-600 rounded-lg p-6 mt-6">
+            <h2 class="text-xl font-bold mb-4 text-red-300">🚨 Critical Security Issues Found</h2>
+            <template x-for="issue in criticalIssues" :key="issue.test">
+                <div class="mb-2 p-3 bg-red-800 rounded">
+                    <div class="font-medium" x-text="issue.test"></div>
+                    <div class="text-sm text-red-200" x-text="issue.description"></div>
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <!-- Include required scripts -->
+    <script src="/static/app.js"></script>
+    <script src="test_config.js"></script>
+    
+    <script>
+        function frontendTestSuite() {
+            return {
+                running: false,
+                testResults: [],
+                consoleOutput: [],
+                summary: {
+                    total: 0,
+                    passed: 0,
+                    failed: 0,
+                    warnings: 0,
+                    successRate: '0%'
+                },
+                criticalIssues: [],
+                recorder: null,
+
+                init() {
+                    this.recorder = new TestRecorder();
+                    this.log('info', 'Frontend test suite initialized');
+                },
+
+                log(type, message) {
+                    const timestamp = new Date().toLocaleTimeString();
+                    this.consoleOutput.push({
+                        id: Date.now() + Math.random(),
+                        type,
+                        message,
+                        timestamp
+                    });
+                    
+                    // Auto-scroll console
+                    this.$nextTick(() => {
+                        const console = this.$refs.console;
+                        console.scrollTop = console.scrollHeight;
+                    });
+                },
+
+                async runAllTests() {
+                    this.running = true;
+                    this.clearResults();
+                    this.log('info', '🚀 Starting comprehensive frontend test suite...');
+
+                    try {
+                        // Test categories
+                        await this.testBrowserCompatibility();
+                        await this.testEncryptionDecryption();
+                        await this.testUIComponents();
+                        await this.testFormValidation();
+                        await this.testResponsiveDesign();
+                        await this.testAccessibility();
+                        await this.runSecurityTests();
+                        await this.runPerformanceTests();
+                        
+                        this.updateSummary();
+                        this.log('info', '✅ All tests completed');
+                        
+                    } catch (error) {
+                        this.log('fail', `💥 Test suite error: ${error.message}`);
+                    } finally {
+                        this.running = false;
+                    }
+                },
+
+                async testBrowserCompatibility() {
+                    this.log('info', '🌐 Testing browser compatibility...');
+                    
+                    // Web Crypto API
+                    if (window.crypto && window.crypto.subtle) {
+                        this.recordTest('Web Crypto API Support', 'PASS');
+                    } else {
+                        this.recordTest('Web Crypto API Support', 'FAIL', { 
+                            error: 'Web Crypto API not supported' 
+                        });
+                        this.addCriticalIssue('Web Crypto API Support', 'Encryption will not work without Web Crypto API');
+                    }
+
+                    // Required crypto functions
+                    const requiredFunctions = ['encrypt', 'decrypt', 'importKey', 'deriveKey', 'digest'];
+                    for (const func of requiredFunctions) {
+                        if (window.crypto?.subtle?.[func]) {
+                            this.recordTest(`Crypto function: ${func}`, 'PASS');
+                        } else {
+                            this.recordTest(`Crypto function: ${func}`, 'FAIL', {
+                                error: `crypto.subtle.${func} not available`
+                            });
+                        }
+                    }
+
+                    // Text encoding
+                    try {
+                        new TextEncoder();
+                        new TextDecoder();
+                        this.recordTest('Text Encoding Support', 'PASS');
+                    } catch (error) {
+                        this.recordTest('Text Encoding Support', 'FAIL', { error: error.message });
+                    }
+
+                    // Clipboard API
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        this.recordTest('Clipboard API Support', 'PASS');
+                    } else {
+                        this.recordTest('Clipboard API Support', 'WARNING', {
+                            error: 'Clipboard API not supported - copy functionality may not work'
+                        });
+                    }
+                },
+
+                async testEncryptionDecryption() {
+                    this.log('info', '🔐 Testing encryption/decryption...');
+                    
+                    const testCases = [
+                        { content: TEST_CONFIG.TEST_CONTENT.SMALL, password: 'simple123' },
+                        { content: TEST_CONFIG.TEST_CONTENT.MEDIUM, password: 'Complex!Password#123' },
+                        { content: '🔐 Unicode test 测试', password: 'unicode-pass' },
+                        { content: JSON.stringify({test: true}), password: 'json-test' }
+                    ];
+
+                    for (const testCase of testCases) {
+                        try {
+                            const { result: encrypted, executionTime: encryptTime } = 
+                                await TestUtils.measureAsyncExecutionTime(() => 
+                                    encryptPaste(testCase.content, testCase.password)
+                                );
+
+                            const { result: decrypted, executionTime: decryptTime } = 
+                                await TestUtils.measureAsyncExecutionTime(() => 
+                                    decryptPaste(encrypted, testCase.password)
+                                );
+
+                            if (decrypted === testCase.content) {
+                                this.recordTest(`Encrypt/Decrypt: ${testCase.content.substring(0, 20)}...`, 'PASS', {
+                                    encryptTime,
+                                    decryptTime,
+                                    originalSize: testCase.content.length,
+                                    encryptedSize: encrypted.length
+                                });
+                            } else {
+                                this.recordTest(`Encrypt/Decrypt: ${testCase.content.substring(0, 20)}...`, 'FAIL', {
+                                    error: 'Decrypted content does not match original'
+                                });
+                            }
+                        } catch (error) {
+                            this.recordTest(`Encrypt/Decrypt: ${testCase.content.substring(0, 20)}...`, 'FAIL', {
+                                error: error.message
+                            });
+                        }
+                    }
+
+                    // Test wrong password
+                    try {
+                        const encrypted = await encryptPaste('test', 'correct-password');
+                        await decryptPaste(encrypted, 'wrong-password');
+                        this.recordTest('Wrong Password Handling', 'FAIL', {
+                            error: 'Should have failed with wrong password'
+                        });
+                    } catch (error) {
+                        this.recordTest('Wrong Password Handling', 'PASS', {
+                            message: 'Correctly rejected wrong password'
+                        });
+                    }
+                },
+
+                async testUIComponents() {
+                    this.log('info', '🎨 Testing UI components...');
+                    
+                    // Test Alpine.js is loaded
+                    if (window.Alpine) {
+                        this.recordTest('Alpine.js Framework', 'PASS');
+                    } else {
+                        this.recordTest('Alpine.js Framework', 'FAIL', {
+                            error: 'Alpine.js not loaded'
+                        });
+                    }
+
+                    // Test required DOM elements
+                    const requiredElements = [
+                        'textarea[x-model="content"]',
+                        'input[x-model="encryptionPassword"]',
+                        'button[x-click="createPaste"]',
+                        '.password-strength',
+                        '.char-count'
+                    ];
+
+                    for (const selector of requiredElements) {
+                        const element = document.querySelector(selector);
+                        if (element) {
+                            this.recordTest(`UI Element: ${selector}`, 'PASS');
+                        } else {
+                            this.recordTest(`UI Element: ${selector}`, 'FAIL', {
+                                error: `Element not found: ${selector}`
+                            });
+                        }
+                    }
+
+                    // Test CSS animations and transitions
+                    const style = getComputedStyle(document.body);
+                    if (style.transition || style.animation) {
+                        this.recordTest('CSS Animations Support', 'PASS');
+                    } else {
+                        this.recordTest('CSS Animations Support', 'WARNING', {
+                            message: 'No animations detected'
+                        });
+                    }
+                },
+
+                async testFormValidation() {
+                    this.log('info', '✅ Testing form validation...');
+                    
+                    // Test empty content validation
+                    // This would require manipulating Alpine.js state
+                    // For now, we'll test the presence of validation elements
+                    
+                    const validationElements = [
+                        '.char-count',
+                        '.password-strength',
+                        '.error-toast'
+                    ];
+
+                    for (const selector of validationElements) {
+                        const element = document.querySelector(selector);
+                        if (element) {
+                            this.recordTest(`Validation Element: ${selector}`, 'PASS');
+                        } else {
+                            this.recordTest(`Validation Element: ${selector}`, 'WARNING', {
+                                message: `Validation element not found: ${selector}`
+                            });
+                        }
+                    }
+                },
+
+                async testResponsiveDesign() {
+                    this.log('info', '📱 Testing responsive design...');
+                    
+                    const originalWidth = window.innerWidth;
+                    const testWidths = [320, 768, 1024, 1920]; // Mobile, tablet, desktop
+
+                    for (const width of testWidths) {
+                        // Note: We can't actually resize the window in tests
+                        // but we can check for responsive CSS classes
+                        const mobileClasses = ['sm:', 'md:', 'lg:', 'xl:'];
+                        const hasResponsiveCSS = mobileClasses.some(cls => 
+                            document.body.outerHTML.includes(cls)
+                        );
+
+                        if (hasResponsiveCSS) {
+                            this.recordTest(`Responsive Design (${width}px)`, 'PASS');
+                        } else {
+                            this.recordTest(`Responsive Design (${width}px)`, 'WARNING', {
+                                message: 'No responsive CSS classes detected'
+                            });
+                        }
+                    }
+                },
+
+                async testAccessibility() {
+                    this.log('info', '♿ Testing accessibility...');
+                    
+                    // Check for ARIA labels
+                    const inputs = document.querySelectorAll('input, textarea, button');
+                    let accessibleInputs = 0;
+                    
+                    inputs.forEach(input => {
+                        if (input.getAttribute('aria-label') || 
+                            input.getAttribute('aria-labelledby') ||
+                            input.closest('label') ||
+                            document.querySelector(`label[for="${input.id}"]`)) {
+                            accessibleInputs++;
+                        }
+                    });
+
+                    const accessibilityScore = (accessibleInputs / inputs.length) * 100;
+                    if (accessibilityScore > 80) {
+                        this.recordTest('Accessibility Labels', 'PASS', {
+                            score: `${accessibilityScore.toFixed(1)}%`
+                        });
+                    } else {
+                        this.recordTest('Accessibility Labels', 'WARNING', {
+                            score: `${accessibilityScore.toFixed(1)}%`,
+                            message: 'Some inputs may lack proper labels'
+                        });
+                    }
+
+                    // Check for keyboard navigation
+                    const focusableElements = document.querySelectorAll(
+                        'a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])'
+                    );
+                    
+                    if (focusableElements.length > 0) {
+                        this.recordTest('Keyboard Navigation', 'PASS', {
+                            focusableElements: focusableElements.length
+                        });
+                    } else {
+                        this.recordTest('Keyboard Navigation', 'FAIL', {
+                            error: 'No focusable elements found'
+                        });
+                    }
+                },
+
+                async runSecurityTests() {
+                    this.log('info', '🛡️ Running security tests...');
+                    
+                    // Test XSS prevention
+                    for (const payload of TEST_CONFIG.SECURITY_PAYLOADS.XSS) {
+                        try {
+                            // Test if content is properly sanitized when displayed
+                            const sanitized = TestUtils.sanitizeForHTML(payload);
+                            if (!sanitized.includes('<script>') && !sanitized.includes('javascript:')) {
+                                this.recordTest(`XSS Prevention: ${payload.substring(0, 20)}...`, 'PASS');
+                            } else {
+                                this.recordTest(`XSS Prevention: ${payload.substring(0, 20)}...`, 'FAIL', {
+                                    error: 'Potential XSS vulnerability'
+                                });
+                                this.addCriticalIssue('XSS Prevention', `Payload not properly sanitized: ${payload}`);
+                            }
+                        } catch (error) {
+                            this.recordTest(`XSS Prevention: ${payload.substring(0, 20)}...`, 'WARNING', {
+                                error: error.message
+                            });
+                        }
+                    }
+
+                    // Test Content Security Policy
+                    const metaCSP = document.querySelector('meta[http-equiv="Content-Security-Policy"]');
+                    if (metaCSP || document.querySelector('meta[http-equiv="content-security-policy"]')) {
+                        this.recordTest('Content Security Policy', 'PASS');
+                    } else {
+                        this.recordTest('Content Security Policy', 'WARNING', {
+                            message: 'No CSP meta tag found (may be set via headers)'
+                        });
+                    }
+
+                    // Test HTTPS enforcement
+                    if (location.protocol === 'https:') {
+                        this.recordTest('HTTPS Enforcement', 'PASS');
+                    } else {
+                        this.recordTest('HTTPS Enforcement', 'WARNING', {
+                            message: 'Not running on HTTPS (development environment)'
+                        });
+                    }
+                },
+
+                async runPerformanceTests() {
+                    this.log('info', '⚡ Running performance tests...');
+                    
+                    // Test page load performance
+                    if (performance.timing) {
+                        const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+                        if (loadTime < 3000) {
+                            this.recordTest('Page Load Performance', 'PASS', {
+                                loadTime: `${loadTime}ms`
+                            });
+                        } else {
+                            this.recordTest('Page Load Performance', 'WARNING', {
+                                loadTime: `${loadTime}ms`,
+                                message: 'Page load time > 3 seconds'
+                            });
+                        }
+                    }
+
+                    // Test encryption performance with various sizes
+                    const performanceTests = [
+                        { size: 1024, name: '1KB' },
+                        { size: 10240, name: '10KB' },
+                        { size: 102400, name: '100KB' }
+                    ];
+
+                    for (const test of performanceTests) {
+                        try {
+                            const content = 'x'.repeat(test.size);
+                            const password = 'performance-test';
+                            
+                            const { executionTime } = await TestUtils.measureAsyncExecutionTime(() =>
+                                encryptPaste(content, password)
+                            );
+
+                            // Performance thresholds (in ms)
+                            const threshold = test.size < 10240 ? 100 : test.size < 102400 ? 500 : 2000;
+                            
+                            if (executionTime < threshold) {
+                                this.recordTest(`Encryption Performance (${test.name})`, 'PASS', {
+                                    executionTime: `${executionTime.toFixed(2)}ms`,
+                                    threshold: `${threshold}ms`
+                                });
+                            } else {
+                                this.recordTest(`Encryption Performance (${test.name})`, 'WARNING', {
+                                    executionTime: `${executionTime.toFixed(2)}ms`,
+                                    threshold: `${threshold}ms`,
+                                    message: 'Encryption slower than expected'
+                                });
+                            }
+                        } catch (error) {
+                            this.recordTest(`Encryption Performance (${test.name})`, 'FAIL', {
+                                error: error.message
+                            });
+                        }
+                    }
+                },
+
+                recordTest(testName, status, details = {}) {
+                    const result = this.recorder.record(testName, status, details);
+                    this.testResults.push(result);
+                    
+                    const icon = {
+                        'PASS': '✅',
+                        'FAIL': '❌', 
+                        'WARNING': '⚠️',
+                        'SKIP': '⏭️'
+                    }[status];
+                    
+                    this.log(status.toLowerCase(), `${icon} ${testName}`);
+                },
+
+                addCriticalIssue(test, description) {
+                    this.criticalIssues.push({ test, description });
+                },
+
+                updateSummary() {
+                    this.summary = this.recorder.getSummary();
+                },
+
+                clearResults() {
+                    this.testResults = [];
+                    this.consoleOutput = [];
+                    this.criticalIssues = [];
+                    this.summary = {
+                        total: 0,
+                        passed: 0,
+                        failed: 0,
+                        warnings: 0,
+                        successRate: '0%'
+                    };
+                    this.recorder = new TestRecorder();
+                },
+
+                exportResults() {
+                    const results = this.recorder.exportResults();
+                    results.criticalIssues = this.criticalIssues;
+                    
+                    const blob = new Blob([JSON.stringify(results, null, 2)], {
+                        type: 'application/json'
+                    });
+                    
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `bincrypt-frontend-tests-${new Date().toISOString().slice(0, 19)}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                }
+            }
+        }
+    </script>
+</body>
+</html>

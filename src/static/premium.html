@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium - BinCrypt</title>
+    <meta name="description" content="BinCrypt Premium features - Extended expiration, larger files, and priority support">
+    <meta name="robots" content="index, follow">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg: #000;
+            --surface: #0a0a0a;
+            --border: #222;
+            --text: #fff;
+            --text-dim: #888;
+            --accent: #fff;
+            --premium: #fbbf24;
+            --premium-bg: rgba(251, 191, 36, 0.1);
+        }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        /* Header */
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 0;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        
+        nav {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        nav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        
+        nav a:hover {
+            color: var(--text);
+        }
+        
+        nav a.active {
+            color: var(--premium);
+        }
+        
+        /* Main Container */
+        .container {
+            max-width: 900px;
+            margin: 3rem auto;
+            padding: 0 2rem;
+        }
+        
+        /* Page Header */
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .premium-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--premium-bg);
+            color: var(--premium);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .page-subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+        }
+        
+        /* Pricing Card */
+        .pricing-card {
+            background: var(--surface);
+            border: 2px solid var(--premium);
+            border-radius: 12px;
+            padding: 2.5rem;
+            text-align: center;
+            margin-bottom: 3rem;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .pricing-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, var(--premium), #f59e0b, var(--premium));
+        }
+        
+        .pricing-header {
+            margin-bottom: 2rem;
+        }
+        
+        .pricing-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--premium);
+            margin-bottom: 0.5rem;
+        }
+        
+        .pricing-description {
+            color: var(--text-dim);
+        }
+        
+        .pricing-amount {
+            font-size: 3rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .pricing-period {
+            color: var(--text-dim);
+            font-size: 1rem;
+        }
+        
+        .pricing-note {
+            color: var(--text-dim);
+            font-size: 0.875rem;
+            margin-top: 1rem;
+        }
+        
+        .premium-button {
+            background: var(--premium);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 1rem 3rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin-top: 2rem;
+        }
+        
+        .premium-button:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        /* Comparison Table */
+        .comparison-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .comparison-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .comparison-table th,
+        .comparison-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        .comparison-table th {
+            font-weight: 600;
+            color: var(--text);
+        }
+        
+        .comparison-table .feature-name {
+            font-weight: 500;
+        }
+        
+        .comparison-table .free-col {
+            color: var(--text-dim);
+            text-align: center;
+        }
+        
+        .comparison-table .premium-col {
+            color: var(--premium);
+            text-align: center;
+            font-weight: 600;
+        }
+        
+        .checkmark {
+            color: #10b981;
+        }
+        
+        .cross {
+            color: #ef4444;
+        }
+        
+        /* Features List */
+        .features-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .features-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        
+        .feature-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .feature-icon {
+            width: 24px;
+            height: 24px;
+            color: var(--premium);
+            margin-top: 0.25rem;
+            flex-shrink: 0;
+        }
+        
+        .feature-content {
+            flex: 1;
+        }
+        
+        .feature-title {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .feature-description {
+            color: var(--text-dim);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+        
+        /* FAQ Section */
+        .faq-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+        }
+        
+        .faq-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .faq-item {
+            margin-bottom: 1.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1.5rem;
+        }
+        
+        .faq-item:last-child {
+            margin-bottom: 0;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        
+        .faq-question {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            color: var(--text);
+        }
+        
+        .faq-answer {
+            color: var(--text-dim);
+            line-height: 1.6;
+        }
+        
+        /* Links */
+        a {
+            color: var(--premium);
+            text-decoration: underline;
+            text-decoration-color: var(--text-dim);
+            transition: text-decoration-color 0.2s;
+        }
+        
+        a:hover {
+            text-decoration-color: var(--premium);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 0 1rem;
+            }
+            
+            nav {
+                gap: 1rem;
+            }
+            
+            .container {
+                padding: 0 1rem;
+                margin: 2rem auto;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .pricing-card {
+                padding: 2rem;
+            }
+            
+            .pricing-amount {
+                font-size: 2.5rem;
+            }
+            
+            .comparison-table {
+                font-size: 0.875rem;
+            }
+            
+            .comparison-table th,
+            .comparison-table td {
+                padding: 0.75rem 0.5rem;
+            }
+            
+            .features-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .features-section,
+            .comparison-section,
+            .faq-section {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body x-data="premium()">
+    <header>
+        <div class="header-content">
+            <div class="logo">BinCrypt</div>
+            <nav>
+                <a href="/static/index.html">HOME</a>
+                <a href="/static/news.html">NEWS</a>
+                <a href="/static/about.html">ABOUT</a>
+                <a href="/static/premium.html" class="active" style="color: #fbbf24;">PREMIUM</a>
+            </nav>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="page-header">
+            <div class="premium-badge">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                Premium
+            </div>
+            <h1 class="page-title">BinCrypt Premium</h1>
+            <p class="page-subtitle">Enhanced features for power users who need more</p>
+        </div>
+        
+        <div class="pricing-card">
+            <div class="pricing-header">
+                <div class="pricing-title">Premium Plan</div>
+                <div class="pricing-description">Everything you need for professional use</div>
+            </div>
+            
+            <div class="pricing-amount">$5</div>
+            <div class="pricing-period">per month</div>
+            <div class="pricing-note">Paid with Bitcoin for maximum privacy</div>
+            
+            <button class="premium-button" @click="showPayment = true">
+                Get Premium Access
+            </button>
+        </div>
+        
+        <div class="comparison-section">
+            <h2 class="comparison-title">Free vs Premium</h2>
+            <table class="comparison-table">
+                <thead>
+                    <tr>
+                        <th>Feature</th>
+                        <th class="free-col">Free</th>
+                        <th class="premium-col">Premium</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="feature-name">Maximum file size</td>
+                        <td class="free-col">512 KB</td>
+                        <td class="premium-col">5 MB</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Paste expiration</td>
+                        <td class="free-col">7 days</td>
+                        <td class="premium-col">90 days</td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Zero-knowledge encryption</td>
+                        <td class="free-col"><span class="checkmark">✓</span></td>
+                        <td class="premium-col"><span class="checkmark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Syntax highlighting</td>
+                        <td class="free-col"><span class="checkmark">✓</span></td>
+                        <td class="premium-col"><span class="checkmark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Password protection</td>
+                        <td class="free-col"><span class="checkmark">✓</span></td>
+                        <td class="premium-col"><span class="checkmark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Burn after read</td>
+                        <td class="free-col"><span class="checkmark">✓</span></td>
+                        <td class="premium-col"><span class="checkmark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Priority support</td>
+                        <td class="free-col"><span class="cross">✗</span></td>
+                        <td class="premium-col"><span class="checkmark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">Custom expiration dates</td>
+                        <td class="free-col"><span class="cross">✗</span></td>
+                        <td class="premium-col"><span class="checkmark">✓</span></td>
+                    </tr>
+                    <tr>
+                        <td class="feature-name">API access</td>
+                        <td class="free-col"><span class="cross">✗</span></td>
+                        <td class="premium-col"><span class="checkmark">✓</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        
+        <div class="features-section">
+            <h2 class="features-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                </svg>
+                Premium Benefits
+            </h2>
+            <div class="features-grid">
+                <div class="feature-item">
+                    <svg class="feature-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"/>
+                    </svg>
+                    <div class="feature-content">
+                        <div class="feature-title">Larger File Support</div>
+                        <div class="feature-description">Upload files up to 5MB - perfect for large code files, configuration dumps, or detailed documentation.</div>
+                    </div>
+                </div>
+                
+                <div class="feature-item">
+                    <svg class="feature-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M11.99 2C6.47 2 2 6.48 2 12s4.47 10 9.99 10C17.52 22 22 17.52 22 12S17.52 2 11.99 2zM12 20c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zM12.5 7H11v6l5.25 3.15.75-1.23-4.5-2.67z"/>
+                    </svg>
+                    <div class="feature-content">
+                        <div class="feature-title">Extended Expiration</div>
+                        <div class="feature-description">Keep your pastes alive for up to 90 days instead of 7, with custom expiration date selection.</div>
+                    </div>
+                </div>
+                
+                <div class="feature-item">
+                    <svg class="feature-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                    </svg>
+                    <div class="feature-content">
+                        <div class="feature-title">Priority Support</div>
+                        <div class="feature-description">Get priority email support with faster response times for any technical issues or questions.</div>
+                    </div>
+                </div>
+                
+                <div class="feature-item">
+                    <svg class="feature-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0L19.2 12l-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/>
+                    </svg>
+                    <div class="feature-content">
+                        <div class="feature-title">API Access</div>
+                        <div class="feature-description">Programmatic access to create and manage pastes through our RESTful API for automation and integration.</div>
+                    </div>
+                </div>
+                
+                <div class="feature-item">
+                    <svg class="feature-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
+                    </svg>
+                    <div class="feature-content">
+                        <div class="feature-title">Same Security</div>
+                        <div class="feature-description">All the same zero-knowledge encryption and privacy features - Premium doesn't compromise security.</div>
+                    </div>
+                </div>
+                
+                <div class="feature-item">
+                    <svg class="feature-icon" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                    </svg>
+                    <div class="feature-content">
+                        <div class="feature-title">Support Development</div>
+                        <div class="feature-description">Help fund continued development, security audits, and infrastructure costs for this privacy-focused service.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="faq-section">
+            <h2 class="faq-title">Frequently Asked Questions</h2>
+            
+            <div class="faq-item">
+                <div class="faq-question">Why Bitcoin payments?</div>
+                <div class="faq-answer">We use Bitcoin through BTCPay Server to maintain your privacy. No personal information, credit cards, or payment processors that could track or store your data.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">Is Premium less secure than Free?</div>
+                <div class="faq-answer">No! Premium uses the exact same zero-knowledge encryption as the free tier. We never have access to your unencrypted data, regardless of your plan.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">Can I cancel anytime?</div>
+                <div class="faq-answer">Yes, you can stop your subscription at any time. Your existing Premium pastes will continue to work until their expiration date.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">What happens to my data if I cancel?</div>
+                <div class="faq-answer">Your existing pastes remain accessible until their expiration date. New pastes will use the free tier limits (7 days, 512KB).</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">Do you store payment information?</div>
+                <div class="faq-answer">No. All payments are processed through BTCPay Server and we don't store any payment or billing information.</div>
+            </div>
+            
+            <div class="faq-item">
+                <div class="faq-question">Is there a free trial?</div>
+                <div class="faq-answer">The free tier gives you a great sense of our service. Premium is only $5/month and you can cancel anytime if you're not satisfied.</div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Payment Modal -->
+    <div x-show="showPayment" x-cloak style="position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.95); display: flex; align-items: center; justify-content: center; z-index: 1000;" @click.self="showPayment = false">
+        <div style="background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 2.5rem; max-width: 500px; width: 90%; text-align: center;">
+            <h2 style="font-size: 1.5rem; margin-bottom: 1.5rem;">Premium Subscription</h2>
+            <p style="color: var(--text-dim); margin-bottom: 2rem;">Payment processing with Bitcoin via BTCPay Server will be implemented soon. Premium features coming in the next update!</p>
+            <div style="display: flex; gap: 1rem;">
+                <button @click="showPayment = false" style="flex: 1; padding: 0.75rem 1.5rem; border: 1px solid var(--border); border-radius: 6px; background: transparent; color: var(--text); cursor: pointer;">
+                    Close
+                </button>
+                <button style="flex: 1; padding: 0.75rem 1.5rem; background: var(--premium); color: #000; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                    Get Notified
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function premium() {
+            return {
+                showPayment: false
+            }
+        }
+    </script>
+</body>
+</html>

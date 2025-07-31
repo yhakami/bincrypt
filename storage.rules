@@ -1,0 +1,11 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Block all client-side access
+    // Only server-side access via service account is allowed
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

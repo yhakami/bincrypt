@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="coinzilla" content="14afc2e3eab80c10835dba98e1357306" />
+    <title>BinCrypt - Encrypted Paste Viewer</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    
+    <!-- Firebase Configuration -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCspkCyo_zki45k4P_JzEFEBsTtAUbj2Ik",
+            authDomain: "bincryptio.firebaseapp.com",
+            projectId: "bincryptio",
+            storageBucket: "bincryptio.firebasestorage.app",
+            messagingSenderId: "474009354121",
+            appId: "1:474009354121:web:7931fbbb9cebbd9d1deb58"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        window.firebase = app;
+    </script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg: #000;
+            --surface: #0a0a0a;
+            --border: #222;
+            --text: #fff;
+            --text-dim: #888;
+            --accent: #fff;
+        }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        /* Header */
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 0;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        
+        nav {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        nav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        
+        nav a:hover {
+            color: var(--text);
+        }
+        
+        /* Main Container */
+        .container {
+            max-width: 900px;
+            margin: 3rem auto;
+            padding: 0 2rem;
+        }
+        
+        /* Decrypt Section */
+        .decrypt-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .decrypt-section h1 {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .decrypt-section p {
+            color: var(--text-dim);
+            margin-bottom: 2rem;
+        }
+        
+        .password-form {
+            display: flex;
+            gap: 1rem;
+            max-width: 400px;
+            margin: 0 auto;
+            flex-direction: column;
+        }
+        
+        @media (min-width: 768px) {
+            .password-form {
+                flex-direction: row;
+            }
+        }
+        
+        .password-input {
+            flex: 1;
+            padding: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+        }
+        
+        .password-input:focus {
+            outline: none;
+            border-color: #444;
+        }
+        
+        .decrypt-btn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            padding: 0.75rem 2rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            white-space: nowrap;
+        }
+        
+        .decrypt-btn:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .decrypt-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        /* Content Display */
+        .content-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .content-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .content-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .language-badge {
+            background: var(--border);
+            color: var(--text);
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-family: 'JetBrains Mono', monospace;
+            text-transform: uppercase;
+        }
+        
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .copy-btn:hover {
+            background: #111;
+            border-color: #444;
+        }
+        
+        .content-display {
+            padding: 0;
+            background: var(--bg);
+        }
+        
+        .content-display pre {
+            margin: 0;
+            padding: 1.5rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+        
+        .content-display code {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        /* Error and Loading States */
+        .error-message {
+            background: #991b1b;
+            color: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-top: 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border);
+            border-radius: 50%;
+            border-top-color: var(--text);
+            animation: spin 0.8s ease-in-out infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Burn After Read Warning */
+        .burn-warning {
+            background: #b45309;
+            color: #fff;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .burn-warning svg {
+            flex-shrink: 0;
+        }
+        
+        /* Viewer Layout for Ads */
+        .viewer-content-wrapper {
+            display: flex;
+            gap: 2rem;
+            align-items: flex-start;
+        }
+        
+        .viewer-main-content {
+            flex: 1;
+            min-width: 0;
+        }
+        
+        .viewer-sidebar {
+            flex-shrink: 0;
+            width: 300px;
+            position: sticky;
+            top: 2rem;
+        }
+        
+        .desktop-only {
+            display: block;
+        }
+        
+        .mobile-only {
+            display: none;
+        }
+        
+        /* Utility Classes */
+        [x-cloak] { display: none !important; }
+        
+        @media (max-width: 1024px) {
+            .viewer-content-wrapper {
+                flex-direction: column;
+            }
+            
+            .viewer-sidebar {
+                display: none;
+            }
+            
+            .desktop-only {
+                display: none;
+            }
+            
+            .mobile-only {
+                display: block;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 0 1rem;
+            }
+            
+            nav {
+                gap: 1rem;
+            }
+            
+            .container {
+                padding: 0 1rem;
+                margin: 2rem auto;
+            }
+            
+            .decrypt-section {
+                padding: 1.5rem;
+            }
+            
+            .content-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body x-data="pasteViewer()">
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <a href="/" style="color: inherit; text-decoration: none;">BinCrypt</a>
+            </div>
+            <nav>
+                <a href="/news">NEWS</a>
+                <a href="/about">ABOUT</a>
+                <a href="/premium" style="color: #fbbf24;">PREMIUM</a>
+            </nav>
+        </div>
+    </header>
+    
+    <div class="container viewer-container">
+        <div class="viewer-content-wrapper">
+            <div class="viewer-main-content">
+                <!-- Burn After Read Warning -->
+                <div x-show="pasteData?.burnAfterRead" x-cloak class="burn-warning">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+            </svg>
+            <div>
+                <strong>Warning:</strong> This paste will be automatically deleted after viewing.
+            </div>
+        </div>
+        
+        <!-- Decrypt Section -->
+        <div x-show="!decrypted" x-cloak class="decrypt-section">
+            <h1>Encrypted Paste</h1>
+            <p>This paste is encrypted. Enter the decryption password to view its contents.</p>
+            
+            <form @submit.prevent="decrypt" class="password-form">
+                <input 
+                    type="password" 
+                    x-model="decryptionPassword"
+                    class="password-input"
+                    placeholder="Enter decryption password"
+                    :disabled="loading"
+                    autofocus
+                    required
+                >
+                <button 
+                    type="submit"
+                    class="decrypt-btn"
+                    :disabled="loading || !decryptionPassword"
+                >
+                    <span x-show="!loading">Decrypt</span>
+                    <span x-show="loading" class="loading-spinner"></span>
+                </button>
+            </form>
+            
+            <div x-show="error" x-cloak class="error-message" x-text="error"></div>
+        </div>
+        
+        <!-- Content Display -->
+        <div x-show="decrypted" x-cloak class="content-section">
+            <div class="content-header">
+                <div class="content-info">
+                    <span style="font-size: 0.875rem; color: var(--text-dim);" x-text="isUnencrypted ? '⚠️ Unencrypted Content' : 'Decrypted Content'"></span>
+                    <span x-show="metadata?.syntaxHighlight" x-cloak class="language-badge" x-text="metadata?.language || 'plaintext'"></span>
+                </div>
+                <button @click="copyContent" class="copy-btn">
+                    Copy to Clipboard
+                </button>
+            </div>
+            <div class="content-display">
+                <pre x-show="!metadata?.syntaxHighlight"><code x-text="content"></code></pre>
+                <pre x-show="metadata?.syntaxHighlight" x-cloak><code :class="'language-' + (metadata?.language || 'plaintext')" x-text="content"></code></pre>
+            </div>
+        </div>
+            </div>
+            
+            <!-- Ad Sidebar (Desktop only) -->
+            <aside class="viewer-sidebar desktop-only">
+                <div id="viewer-sidebar-ad"></div>
+            </aside>
+        </div>
+        
+        <!-- Mobile Ad (Bottom banner) -->
+        <div id="viewer-mobile-ad" class="mobile-only"></div>
+    </div>
+    
+    <script src="/static/app.js"></script>
+    <script src="/static/viewer.js"></script>
+    <script src="/static/coinzilla-ads.js"></script>
+    <script>
+        // Initialize viewer ads
+        document.addEventListener('DOMContentLoaded', () => {
+            // Desktop sidebar ad
+            const sidebarContainer = document.getElementById('viewer-sidebar-ad');
+            if (sidebarContainer && window.BinCryptCoinzillaAds) {
+                const adElement = BinCryptCoinzillaAds.createAdContainer('sidebar300x600');
+                sidebarContainer.appendChild(adElement);
+            }
+            
+            // Mobile bottom banner
+            const mobileContainer = document.getElementById('viewer-mobile-ad');
+            if (mobileContainer && window.BinCryptCoinzillaAds) {
+                const adElement = BinCryptCoinzillaAds.createAdContainer('mobile320x50');
+                mobileContainer.appendChild(adElement);
+            }
+            
+            // Trigger lazy loading
+            if (window.binCryptCoinzillaAds) {
+                window.binCryptCoinzillaAds.setupLazyLoading();
+            }
+        });
+    </script>
+    <script>
+        function pasteViewer() {
+            return {
+                // State
+                decryptionPassword: '',
+                decrypted: false,
+                loading: false,
+                error: '',
+                isUnencrypted: false,
+                
+                // Paste data
+                pasteData: null,
+                content: '',
+                metadata: {
+                    syntaxHighlight: false,
+                    language: 'plaintext',
+                    burnAfterRead: false
+                },
+                
+                async init() {
+                    // Extract paste ID from URL (/p/{id})
+                    const pathParts = window.location.pathname.split('/');
+                    let pasteId = '';
+                    
+                    // Handle /p/{id} format
+                    if (pathParts.length >= 3 && pathParts[1] === 'p') {
+                        pasteId = pathParts[2];
+                    }
+                    
+                    if (!pasteId) {
+                        this.error = 'Invalid paste URL';
+                        return;
+                    }
+                    
+                    // Fetch paste data
+                    try {
+                        const response = await fetch(`/api/paste/${pasteId}`);
+                        if (!response.ok) {
+                            if (response.status === 404) {
+                                this.error = 'Paste not found or has expired';
+                            } else {
+                                this.error = 'Failed to load paste';
+                            }
+                            return;
+                        }
+                        
+                        this.pasteData = await response.json();
+                        
+                        // Auto-decrypt if using default no-encryption key
+                        this.decryptionPassword = 'no-encryption-default-key';
+                        await this.decrypt();
+                        
+                        // If decryption with default key failed, clear password and show form
+                        if (!this.decrypted) {
+                            this.decryptionPassword = '';
+                            this.error = ''; // Clear the error to show password form
+                        }
+                    } catch (err) {
+                        this.error = 'Failed to load paste';
+                        console.error('Failed to fetch paste:', err);
+                    }
+                },
+                
+                async decrypt() {
+                    if (!this.pasteData) {
+                        this.error = 'No paste data available';
+                        return;
+                    }
+                    
+                    this.error = '';
+                    this.loading = true;
+                    
+                    try {
+                        // Decrypt the ciphertext using the global decryptPaste function
+                        const decryptedJson = await window.decryptPaste(this.pasteData.ciphertext, this.decryptionPassword);
+                        const data = JSON.parse(decryptedJson);
+                        
+                        // Extract content and metadata
+                        this.content = data.content;
+                        this.metadata = data.metadata || {
+                            syntaxHighlight: false,
+                            language: 'plaintext',
+                            burnAfterRead: false
+                        };
+                        
+                        // Decryption successful - display content
+                        this.decrypted = true;
+                        
+                        // Check if using default no-encryption key
+                        this.isUnencrypted = (this.decryptionPassword === 'no-encryption-default-key');
+                        
+                        // Initialize syntax highlighting after Alpine renders
+                        this.$nextTick(() => {
+                            if (this.metadata.syntaxHighlight) {
+                                Prism.highlightAll();
+                            }
+                        });
+                        
+                    } catch (err) {
+                        this.error = 'Failed to decrypt. Please check your password.';
+                        console.error('Decryption error:', err);
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                async copyContent() {
+                    try {
+                        await navigator.clipboard.writeText(this.content);
+                        
+                        // Visual feedback
+                        const button = event.target;
+                        const originalText = button.textContent;
+                        button.textContent = 'Copied!';
+                        setTimeout(() => {
+                            button.textContent = originalText;
+                        }, 2000);
+                    } catch (err) {
+                        this.error = 'Failed to copy content to clipboard';
+                    }
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,1111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="coinzilla" content="14afc2e3eab80c10835dba98e1357306" />
+    <title>BinCrypt - Zero-Knowledge Encrypted Pastebin</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    
+    <!-- Firebase Configuration -->
+    <script type="module">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+        // TODO: Add SDKs for Firebase products that you want to use
+        // https://firebase.google.com/docs/web/setup#available-libraries
+
+        // Your web app's Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyCspkCyo_zki45k4P_JzEFEBsTtAUbj2Ik",
+            authDomain: "bincryptio.firebaseapp.com",
+            projectId: "bincryptio",
+            storageBucket: "bincryptio.firebasestorage.app",
+            messagingSenderId: "474009354121",
+            appId: "1:474009354121:web:7931fbbb9cebbd9d1deb58"
+        };
+
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        window.firebase = app;
+    </script>
+    
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg: #000;
+            --surface: #0a0a0a;
+            --border: #222;
+            --text: #fff;
+            --text-dim: #888;
+            --accent: #fff;
+        }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        /* Header */
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 0;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        
+        nav {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        nav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        
+        nav a:hover {
+            color: var(--text);
+        }
+        
+        /* Main Container */
+        .container {
+            max-width: 900px;
+            margin: 3rem auto;
+            padding: 0 2rem;
+        }
+        
+        /* Paste Area */
+        .paste-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .paste-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .char-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--text-dim);
+        }
+        
+        textarea {
+            width: 100%;
+            min-height: 450px;
+            background: transparent;
+            color: var(--text);
+            border: none;
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+        
+        textarea:focus {
+            outline: none;
+        }
+        
+        /* Section Headers */
+        .section-header {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        
+        .section-header:hover {
+            color: var(--text);
+        }
+        
+        .chevron {
+            transition: transform 0.3s ease;
+        }
+        
+        /* Options Section */
+        .options-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .options-section.primary {
+            grid-template-columns: 2fr 1fr;
+        }
+        
+        .options-section.secondary {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .option-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .option-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .option-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+        
+        /* Custom Toggle */
+        .toggle {
+            position: relative;
+            width: 32px;
+            height: 18px;
+        }
+        
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #333;
+            transition: .3s;
+            border-radius: 18px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 12px;
+            width: 12px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #666;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #fff;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(14px);
+            background-color: #000;
+        }
+        
+        /* Form Elements */
+        select, input[type="text"], input[type="password"] {
+            width: 100%;
+            background: #000;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: #444;
+        }
+        
+        .option-description {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 0.5rem;
+        }
+        
+        /* Encryption Section */
+        .encryption-section {
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .encryption-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            display: block;
+            margin-bottom: 0.75rem;
+        }
+        
+        .encryption-row {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        
+        .password-field {
+            flex: 1;
+            position: relative;
+        }
+        
+        .password-input {
+            width: 100%;
+            padding: 0.75rem;
+            padding-right: 5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+        }
+        
+        .password-actions {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 0.25rem;
+        }
+        
+        .icon-btn {
+            background: transparent;
+            border: none;
+            padding: 0.5rem;
+            cursor: pointer;
+            color: var(--text-dim);
+            transition: all 0.2s;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .icon-btn:hover:not(:disabled) {
+            background: var(--border);
+            color: var(--text);
+        }
+        
+        .icon-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        
+        .generate-btn-inline {
+            padding: 0.75rem 1.5rem;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+        
+        .generate-btn-inline:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        
+        .password-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            display: block;
+        }
+        
+        .password-input-wrapper {
+            position: relative;
+        }
+        
+        .password-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+        }
+        
+        .password-strength {
+            display: flex;
+            gap: 4px;
+            margin-top: 0.5rem;
+        }
+        
+        .strength-bar {
+            flex: 1;
+            height: 3px;
+            background: #222;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .strength-bar.active {
+            background: #4ade80;
+        }
+        
+        /* Action Button */
+        .action-section {
+            margin-top: 2rem;
+            text-align: center;
+        }
+        
+        .encrypt-btn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 2rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .encrypt-btn:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .encrypt-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        
+        .encrypt-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+        }
+        
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2.5rem;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        
+        .modal h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .url-display {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            word-break: break-all;
+            min-height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .typewriter {
+            overflow: hidden;
+            white-space: nowrap;
+            margin: 0 auto;
+            letter-spacing: .05em;
+        }
+        
+        .url-options {
+            display: flex;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            justify-content: center;
+        }
+        
+        .url-option {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .url-option:hover {
+            background: #111;
+            border-color: #444;
+        }
+        
+        .url-option.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .modal-btn {
+            flex: 1;
+            padding: 0.75rem 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .modal-btn.primary {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-1px);
+        }
+        
+        /* Error Toast */
+        .error-toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #991b1b;
+            color: #fff;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+        
+        [x-cloak] { display: none !important; }
+        
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 0 1rem;
+            }
+            
+            nav {
+                gap: 1rem;
+            }
+            
+            .container {
+                padding: 0 1rem;
+                margin: 2rem auto;
+            }
+            
+            .options-section,
+            .options-section.primary,
+            .options-section.secondary {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body x-data="app()">
+    <header>
+        <div class="header-content">
+            <div class="logo">BinCrypt</div>
+            <nav>
+                <a href="/news">NEWS</a>
+                <a href="/about">ABOUT</a>
+                <a href="/premium" style="color: #fbbf24;">PREMIUM</a>
+            </nav>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="paste-section">
+            <div class="paste-header">
+                <span style="font-size: 0.875rem; color: var(--text-dim);">Encrypted Paste</span>
+                <div class="char-count" x-text="stats"></div>
+            </div>
+            <textarea 
+                x-model="content"
+                @input="updateStats"
+                placeholder="Paste your text here..."
+                autofocus
+            ></textarea>
+        </div>
+        
+        <!-- Content Options -->
+        <div class="section-header" @click="contentExpanded = !contentExpanded" style="cursor: pointer;">
+            <span>Content Options</span>
+            <svg class="chevron" :style="{ transform: contentExpanded ? 'rotate(180deg)' : 'rotate(0)' }" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+        </div>
+        <div class="options-section primary" x-show="contentExpanded" x-collapse>
+            <div class="option-card large">
+                <div class="option-header">
+                    <span class="option-title">Syntax Highlighting</span>
+                    <label class="toggle">
+                        <input type="checkbox" x-model="syntaxHighlight">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <select x-show="syntaxHighlight" x-model="language"  style="margin-top: 0.5rem;">
+                    <option value="plaintext">Plain Text</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="python">Python</option>
+                    <option value="go">Go</option>
+                    <option value="rust">Rust</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="json">JSON</option>
+                    <option value="bash">Bash</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                    <option value="csharp">C#</option>
+                    <option value="php">PHP</option>
+                    <option value="ruby">Ruby</option>
+                    <option value="yaml">YAML</option>
+                    <option value="sql">SQL</option>
+                    <option value="markdown">Markdown</option>
+                </select>
+                <p class="option-description">Automatically highlight code syntax</p>
+            </div>
+            
+            <div class="option-card">
+                <div class="option-header">
+                    <span class="option-title">Expiration</span>
+                </div>
+                <input type="text" x-ref="datepicker" readonly style="cursor: pointer;">
+                <p class="option-description">Auto-delete after this date</p>
+            </div>
+        </div>
+        
+        <!-- Security Options -->
+        <div class="section-header" @click="securityExpanded = !securityExpanded" style="cursor: pointer;">
+            <span>Security Options</span>
+            <svg class="chevron" :style="{ transform: securityExpanded ? 'rotate(180deg)' : 'rotate(0)' }" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+        </div>
+        <div class="options-section secondary" x-show="securityExpanded" x-collapse>
+            <div class="option-card">
+                <div class="option-header">
+                    <span class="option-title">Burn After Read</span>
+                    <label class="toggle">
+                        <input type="checkbox" x-model="burnAfterRead">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <p class="option-description">Delete after first view</p>
+            </div>
+        </div>
+        
+        <!-- Encryption Key -->
+        <div class="encryption-section">
+            <label class="encryption-label">Encryption Password</label>
+            <div class="encryption-row">
+                <div class="password-field">
+                    <input 
+                        type="text" 
+                        x-model="maskedPassword"
+                        class="password-input"
+                        placeholder="Generate or enter password"
+                        readonly
+                        @mouseenter="hovering = true"
+                        @mouseleave="hovering = false"
+                    >
+                    <div class="password-actions">
+                        <button 
+                            @click="togglePasswordVisibility" 
+                            class="icon-btn"
+                            @mouseenter="showingPassword = true"
+                            @mouseleave="showingPassword = false"
+                            title="Show password"
+                        >
+                            <svg x-show="showingPassword" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                            <svg x-show="!showingPassword" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>
+                        </button>
+                        <button 
+                            @click="copyPassword" 
+                            class="icon-btn"
+                            title="Copy password"
+                            :disabled="!encryptionPassword"
+                        >
+                            <svg x-show="!passwordCopied" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                            <svg x-show="passwordCopied" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <button 
+                    @click="generatePassword"
+                    class="generate-btn-inline"
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5z"/></svg>
+                    Generate
+                </button>
+            </div>
+            <div class="password-strength" x-show="encryptionPassword">
+                <div class="strength-bar" :class="passwordStrength >= 1 ? 'active' : ''"></div>
+                <div class="strength-bar" :class="passwordStrength >= 2 ? 'active' : ''"></div>
+                <div class="strength-bar" :class="passwordStrength >= 3 ? 'active' : ''"></div>
+                <div class="strength-bar" :class="passwordStrength >= 4 ? 'active' : ''"></div>
+            </div>
+        </div>
+        
+        <div class="action-section">
+            <button 
+                @click="createPaste"
+                :disabled="!content || !encryptionPassword || loading"
+                class="encrypt-btn"
+            >
+                <span x-text="loading ? 'Encrypting...' : 'Encrypt & Create Link'"></span>
+            </button>
+        </div>
+        
+        <!-- Ad placement: Below main content -->
+        <div id="homepage-ad-banner"></div>
+    </div>
+    
+    <!-- Success Modal -->
+    <div x-show="showModal" x-cloak class="modal" @click.self="showModal = false">
+        <div class="modal-content">
+            <h2 x-text="isUnencrypted ? '⚠️ Your Unencrypted Link' : 'Your Encrypted Link'"></h2>
+            <p x-show="isUnencrypted" style="color: #f59e0b; margin-bottom: 1rem; font-size: 0.9rem;">
+                Warning: This paste has no password protection. Anyone with the link can view it.
+            </p>
+            <p style="color: var(--text-dim); margin-bottom: 1.5rem;">Choose your preferred URL format:</p>
+            
+            <div class="url-options">
+                <button @click="setUrlType('short')" class="url-option" :class="urlType === 'short' ? 'active' : ''">
+                    Short
+                </button>
+                <button @click="setUrlType('standard')" class="url-option" :class="urlType === 'standard' ? 'active' : ''">
+                    Standard
+                </button>
+                <button @click="setUrlType('custom')" class="url-option" :class="urlType === 'custom' ? 'active' : ''">
+                    Custom Domain
+                </button>
+            </div>
+            
+            <div class="url-display">
+                <div class="typewriter" x-text="displayUrl"></div>
+            </div>
+            
+            <input 
+                x-show="urlType === 'custom'" 
+                type="text" 
+                x-model="customDomain"
+                placeholder="your-domain.com"
+                style="margin-top: 1rem;"
+                @input="updateCustomUrl"
+            >
+            
+            <div class="modal-actions">
+                <button @click="copyUrl" class="modal-btn primary">Copy Link</button>
+                <button @click="showModal = false; resetForm()" class="modal-btn">Create Another</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Error Toast -->
+    <div x-show="error" x-cloak class="error-toast" x-text="error"></div>
+    
+    <script src="/static/app.js"></script>
+    <script src="/static/coinzilla-ads.js"></script>
+    <script>
+        // Initialize homepage ads
+        document.addEventListener('DOMContentLoaded', () => {
+            const bannerContainer = document.getElementById('homepage-ad-banner');
+            if (bannerContainer && window.BinCryptCoinzillaAds) {
+                const adElement = BinCryptCoinzillaAds.createAdContainer('banner728x90');
+                bannerContainer.appendChild(adElement);
+                
+                // Trigger lazy loading check
+                if (window.binCryptCoinzillaAds) {
+                    window.binCryptCoinzillaAds.setupLazyLoading();
+                }
+            }
+        });
+    </script>
+    <script>
+        function app() {
+            return {
+                content: '',
+                encryptionPassword: '',
+                syntaxHighlight: false,
+                language: 'plaintext',
+                expirationDate: null,
+                burnAfterRead: false,
+                loading: false,
+                error: '',
+                stats: '0 chars · 0 lines · 0 KB',
+                passwordStrength: 0,
+                passwordGenerated: false,
+                passwordCopied: false,
+                showingPassword: false,
+                maskedPassword: '',
+                contentExpanded: false,
+                securityExpanded: false,
+                
+                // Modal
+                showModal: false,
+                shareUrl: '',
+                displayUrl: '',
+                urlType: 'standard',
+                pasteId: '',
+                customDomain: '',
+                isUnencrypted: false,
+                
+                init() {
+                    // Initialize date picker
+                    const today = new Date();
+                    const maxDate = new Date();
+                    maxDate.setDate(today.getDate() + 12);
+                    
+                    const defaultDate = new Date();
+                    defaultDate.setDate(today.getDate() + 7);
+                    
+                    flatpickr(this.$refs.datepicker, {
+                        theme: "dark",
+                        minDate: today,
+                        maxDate: maxDate,
+                        defaultDate: defaultDate,
+                        dateFormat: "Y-m-d"
+                    });
+                    
+                    this.expirationDate = defaultDate;
+                    
+                    // Watch for content changes to auto-expand sections
+                    this.$watch('content', (value) => {
+                        if (value && !this.contentExpanded) {
+                            this.contentExpanded = true;
+                            this.securityExpanded = true;
+                        }
+                    });
+                    
+                    // Watch for password changes to update masked version
+                    this.$watch('encryptionPassword', (value) => {
+                        if (value) {
+                            this.maskedPassword = '•'.repeat(value.length);
+                        } else {
+                            this.maskedPassword = '';
+                        }
+                    });
+                    
+                    // Update masked password on hover
+                    this.$watch('showingPassword', (value) => {
+                        if (value && this.encryptionPassword) {
+                            this.maskedPassword = this.encryptionPassword;
+                        } else if (this.encryptionPassword) {
+                            this.maskedPassword = '•'.repeat(this.encryptionPassword.length);
+                        }
+                    });
+                },
+                
+                updateStats() {
+                    const bytes = new TextEncoder().encode(this.content).length;
+                    const chars = this.content.length;
+                    const lines = this.content.split('\n').length;
+                    
+                    const kb = (bytes / 1024).toFixed(1);
+                    this.stats = `${chars} chars · ${lines} lines · ${kb} KB`;
+                    
+                    if (bytes > 524288) {
+                        this.showError('Content exceeds 512 KB limit');
+                    }
+                },
+                
+                checkPasswordStrength() {
+                    const password = this.encryptionPassword;
+                    let strength = 0;
+                    
+                    if (password.length >= 8) strength++;
+                    if (password.length >= 12) strength++;
+                    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+                    if (/[0-9]/.test(password) && /[^a-zA-Z0-9]/.test(password)) strength++;
+                    
+                    this.passwordStrength = strength;
+                },
+                
+                generatePassword() {
+                    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+                    const length = 24;
+                    let password = '';
+                    
+                    // Ensure at least one of each type
+                    const types = [
+                        'ABCDEFGHIJKLMNOPQRSTUVWXYZ',
+                        'abcdefghijklmnopqrstuvwxyz',
+                        '0123456789',
+                        '!@#$%^&*()_+-=[]{}|;:,.<>?'
+                    ];
+                    
+                    // Add one character from each type
+                    types.forEach(type => {
+                        password += type.charAt(Math.floor(Math.random() * type.length));
+                    });
+                    
+                    // Fill the rest randomly
+                    for (let i = password.length; i < length; i++) {
+                        password += chars.charAt(Math.floor(Math.random() * chars.length));
+                    }
+                    
+                    // Shuffle the password
+                    password = password.split('').sort(() => Math.random() - 0.5).join('');
+                    
+                    this.encryptionPassword = password;
+                    this.passwordGenerated = true;
+                    this.checkPasswordStrength();
+                },
+                
+                async copyPassword() {
+                    try {
+                        await navigator.clipboard.writeText(this.encryptionPassword);
+                        this.passwordCopied = true;
+                        setTimeout(() => {
+                            this.passwordCopied = false;
+                        }, 2000);
+                    } catch (err) {
+                        this.showError('Failed to copy password');
+                    }
+                },
+                
+                async createPaste() {
+                    // Check if no encryption password is provided
+                    if (!this.encryptionPassword) {
+                        const confirmed = confirm(
+                            "⚠️ No encryption password provided!\n\n" +
+                            "Without a password, anyone with the link can view this paste.\n\n" +
+                            "Are you sure you want to continue without encryption?"
+                        );
+                        
+                        if (!confirmed) {
+                            return;
+                        }
+                        
+                        // Generate a default password if user confirms
+                        this.encryptionPassword = 'no-encryption-default-key';
+                    }
+                    
+                    this.error = '';
+                    this.loading = true;
+                    
+                    try {
+                        const metadata = {
+                            syntaxHighlight: this.syntaxHighlight,
+                            language: this.syntaxHighlight ? this.language : 'plaintext',
+                            burnAfterRead: this.burnAfterRead
+                        };
+                        
+                        const fullContent = JSON.stringify({
+                            content: this.content,
+                            metadata: metadata
+                        });
+                        
+                        const ciphertext = await window.encryptPaste(fullContent, this.encryptionPassword);
+                        
+                        const response = await fetch('/api/paste', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                ciphertext: ciphertext,
+                                expiry_seconds: 604800,
+                                burn_after_read: this.burnAfterRead
+                            })
+                        });
+                        
+                        if (!response.ok) {
+                            throw new Error(await response.text());
+                        }
+                        
+                        const data = await response.json();
+                        this.pasteId = data.id;
+                        this.shareUrl = window.location.origin + '/p/' + data.id;
+                        this.isUnencrypted = (this.encryptionPassword === 'no-encryption-default-key');
+                        
+                        // Show modal with typewriter effect
+                        this.showModal = true;
+                        this.urlType = 'standard';
+                        this.typewriterEffect();
+                        
+                    } catch (err) {
+                        this.showError(err.message || 'Failed to create paste');
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                setUrlType(type) {
+                    this.urlType = type;
+                    this.typewriterEffect();
+                },
+                
+                typewriterEffect() {
+                    let url = '';
+                    
+                    switch(this.urlType) {
+                        case 'short':
+                            url = `bincrypt.io/${this.pasteId.substring(0, 8)}`;
+                            break;
+                        case 'standard':
+                            url = `bincrypt.io/p/${this.pasteId}`;
+                            break;
+                        case 'custom':
+                            url = this.customDomain ? 
+                                `${this.customDomain}/p/${this.pasteId}` : 
+                                'your-domain.com/p/' + this.pasteId;
+                            break;
+                    }
+                    
+                    this.displayUrl = '';
+                    let i = 0;
+                    
+                    const typeWriter = () => {
+                        if (i < url.length) {
+                            this.displayUrl += url.charAt(i);
+                            i++;
+                            setTimeout(typeWriter, 30);
+                        }
+                    };
+                    
+                    typeWriter();
+                },
+                
+                updateCustomUrl() {
+                    if (this.urlType === 'custom') {
+                        this.typewriterEffect();
+                    }
+                },
+                
+                async hashPassword(password) {
+                    const encoder = new TextEncoder();
+                    const data = encoder.encode(password);
+                    const hash = await crypto.subtle.digest('SHA-256', data);
+                    return btoa(String.fromCharCode(...new Uint8Array(hash)));
+                },
+                
+                async copyUrl() {
+                    const url = this.urlType === 'short' ? 
+                        `https://bincrypt.io/${this.pasteId.substring(0, 8)}` :
+                        this.shareUrl;
+                        
+                    try {
+                        await navigator.clipboard.writeText(url);
+                        this.showError('Link copied to clipboard!');
+                    } catch (err) {
+                        this.showError('Failed to copy link');
+                    }
+                },
+                
+                showError(message) {
+                    this.error = message;
+                    setTimeout(() => {
+                        this.error = '';
+                    }, 3000);
+                },
+                
+                resetForm() {
+                    this.content = '';
+                    this.encryptionPassword = '';
+                    this.syntaxHighlight = false;
+                    this.language = 'plaintext';
+                    this.burnAfterRead = false;
+                    this.passwordStrength = 0;
+                    this.passwordGenerated = false;
+                    this.passwordCopied = false;
+                    this.isUnencrypted = false;
+                    this.updateStats();
+                }
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,829 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BinCrypt - Comprehensive Test Suite</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <style>
+        .test-pass { @apply text-green-400; }
+        .test-fail { @apply text-red-400; }
+        .test-warn { @apply text-yellow-400; }
+        .test-skip { @apply text-gray-400; }
+        .test-error { @apply text-purple-400; }
+        
+        .console-output {
+            font-family: 'Courier New', monospace;
+            background: #111;
+            color: #0f0;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            max-height: 400px;
+            overflow-y: auto;
+            font-size: 0.75rem;
+            line-height: 1.2;
+        }
+        
+        .progress-bar {
+            transition: width 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-4" x-data="comprehensiveTestSuite()">
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="mb-8 text-center">
+            <h1 class="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+                🧪 BinCrypt QA Test Suite
+            </h1>
+            <p class="text-xl text-gray-400">Comprehensive Security, Performance & Quality Assessment</p>
+            <div class="mt-4 text-sm text-gray-500">
+                <span>Testing Environment: </span>
+                <span class="text-blue-400" x-text="testConfig.BASE_URL"></span>
+            </div>
+        </header>
+
+        <!-- Test Controls -->
+        <div class="bg-gray-800 rounded-lg p-6 mb-6">
+            <div class="flex flex-wrap gap-4 items-center justify-center">
+                <button @click="runAllTests()" 
+                    :disabled="running"
+                    class="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 px-6 py-3 rounded-lg font-medium transition-all transform hover:scale-105">
+                    <span x-show="!running">🚀 Run Complete Test Suite</span>
+                    <span x-show="running">⏳ Testing in Progress...</span>
+                </button>
+                
+                <button @click="runFrontendTests()" 
+                    :disabled="running"
+                    class="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 disabled:opacity-50 px-4 py-2 rounded font-medium">
+                    🎨 Frontend Tests
+                </button>
+                
+                <button @click="runAPITests()" 
+                    :disabled="running"
+                    class="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 px-4 py-2 rounded font-medium">
+                    ⚡ API Tests
+                </button>
+                
+                <button @click="runSecurityTests()" 
+                    :disabled="running"
+                    class="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 disabled:opacity-50 px-4 py-2 rounded font-medium">
+                    🛡️ Security Tests
+                </button>
+                
+                <button @click="clearResults()" 
+                    class="bg-gray-600 hover:bg-gray-700 px-4 py-2 rounded font-medium">
+                    🗑️ Clear
+                </button>
+                
+                <button @click="exportResults()" 
+                    :disabled="!hasResults"
+                    class="bg-yellow-600 hover:bg-yellow-700 disabled:opacity-50 px-4 py-2 rounded font-medium">
+                    📊 Export Report
+                </button>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div x-show="running" class="bg-gray-800 rounded-lg p-4 mb-6">
+            <div class="flex justify-between items-center mb-2">
+                <span class="text-sm font-medium">Test Progress</span>
+                <span class="text-sm text-gray-400" x-text="`${progress.current}/${progress.total}`"></span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-3">
+                <div class="bg-blue-600 h-3 rounded-full progress-bar" 
+                    :style="`width: ${(progress.current / progress.total) * 100}%`"></div>
+            </div>
+            <div class="mt-2 text-sm text-gray-400" x-text="currentTest"></div>
+        </div>
+
+        <!-- Test Summary Dashboard -->
+        <div x-show="hasResults" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
+            <div class="bg-gray-800 rounded-lg p-6 text-center">
+                <div class="text-3xl font-bold text-blue-400" x-text="summary.total"></div>
+                <div class="text-sm text-gray-400">Total Tests</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-6 text-center">
+                <div class="text-3xl font-bold text-green-400" x-text="summary.passed"></div>
+                <div class="text-sm text-gray-400">Passed</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-6 text-center">
+                <div class="text-3xl font-bold text-red-400" x-text="summary.failed"></div>
+                <div class="text-sm text-gray-400">Failed</div>
+            </div>
+            <div class="bg-gray-800 rounded-lg p-6 text-center">
+                <div class="text-3xl font-bold" x-text="summary.successRate"></div>
+                <div class="text-sm text-gray-400">Success Rate</div>
+            </div>
+        </div>
+
+        <!-- Critical Issues Alert -->
+        <div x-show="criticalIssues.length > 0" class="bg-red-900 border-2 border-red-600 rounded-lg p-6 mb-6">
+            <h2 class="text-2xl font-bold mb-4 text-red-300 flex items-center">
+                🚨 Critical Security Issues Detected
+                <span class="ml-2 text-lg bg-red-600 px-2 py-1 rounded" x-text="criticalIssues.length"></span>
+            </h2>
+            <div class="space-y-3">
+                <template x-for="issue in criticalIssues" :key="issue.name">
+                    <div class="bg-red-800 p-4 rounded">
+                        <div class="font-bold text-red-200" x-text="issue.name"></div>
+                        <div class="text-sm text-red-300" x-text="issue.details?.message || 'Critical security vulnerability detected'"></div>
+                        <div class="text-xs text-red-400 mt-1">
+                            Severity: <span x-text="issue.severity"></span> | 
+                            <span x-text="issue.timestamp"></span>
+                        </div>
+                    </div>
+                </template>
+            </div>
+        </div>
+
+        <!-- Main Test Results -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Console Output -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4 flex items-center">
+                    🖥️ Live Test Console
+                    <button @click="clearConsole()" class="ml-auto text-sm bg-gray-700 px-2 py-1 rounded">Clear</button>
+                </h2>
+                <div class="console-output" x-ref="console">
+                    <template x-for="line in consoleOutput" :key="line.id">
+                        <div :class="{
+                            'test-pass': line.type === 'pass',
+                            'test-fail': line.type === 'fail', 
+                            'test-warn': line.type === 'warning',
+                            'test-skip': line.type === 'skip',
+                            'test-error': line.type === 'error'
+                        }">
+                            <span class="text-gray-500" x-text="line.timestamp"></span> 
+                            <span x-text="line.message"></span>
+                        </div>
+                    </template>
+                </div>
+            </div>
+
+            <!-- Test Categories -->
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4">📋 Test Categories</h2>
+                <div class="space-y-3">
+                    <template x-for="category in testCategories" :key="category.name">
+                        <div class="bg-gray-700 rounded p-3 cursor-pointer" 
+                            @click="selectedCategory = selectedCategory === category.name ? null : category.name">
+                            <div class="flex justify-between items-center">
+                                <span class="font-medium" x-text="category.name"></span>
+                                <div class="flex items-center space-x-2">
+                                    <span class="text-sm bg-gray-600 px-2 py-1 rounded" x-text="category.count"></span>
+                                    <span :class="{
+                                        'text-green-400': category.status === 'completed',
+                                        'text-yellow-400': category.status === 'running',
+                                        'text-gray-400': category.status === 'pending'
+                                    }" x-text="category.status === 'completed' ? '✓' : category.status === 'running' ? '⏳' : '○'"></span>
+                                </div>
+                            </div>
+                            <div x-show="selectedCategory === category.name" x-collapse class="mt-2 space-y-1">
+                                <template x-for="test in getTestsForCategory(category.name)" :key="test.testName">
+                                    <div class="flex justify-between text-sm">
+                                        <span x-text="test.testName.substring(0, 40) + (test.testName.length > 40 ? '...' : '')"></span>
+                                        <span :class="{
+                                            'test-pass': test.status === 'PASS',
+                                            'test-fail': test.status === 'FAIL',
+                                            'test-warn': test.status === 'WARNING',
+                                            'test-skip': test.status === 'SKIP'
+                                        }" x-text="test.status"></span>
+                                    </div>
+                                </template>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detailed Results -->
+        <div x-show="hasResults" class="mt-6">
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4">📊 Detailed Test Results</h2>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-gray-700">
+                                <th class="text-left p-2">Test Name</th>
+                                <th class="text-left p-2">Status</th>
+                                <th class="text-left p-2">Duration</th>
+                                <th class="text-left p-2">Details</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <template x-for="result in allResults.slice(0, 50)" :key="result.testName">
+                                <tr class="border-b border-gray-700 hover:bg-gray-700">
+                                    <td class="p-2" x-text="result.testName"></td>
+                                    <td class="p-2">
+                                        <span :class="{
+                                            'test-pass': result.status === 'PASS',
+                                            'test-fail': result.status === 'FAIL',
+                                            'test-warn': result.status === 'WARNING',
+                                            'test-skip': result.status === 'SKIP'
+                                        }" x-text="result.status"></span>
+                                    </td>
+                                    <td class="p-2" x-text="result.duration ? result.duration.toFixed(2) + 'ms' : '-'"></td>
+                                    <td class="p-2 text-xs text-gray-400" 
+                                        x-text="result.details?.error || result.details?.message || '-'"></td>
+                                </tr>
+                            </template>
+                        </tbody>
+                    </table>
+                    <div x-show="allResults.length > 50" class="text-center mt-4 text-gray-400">
+                        Showing first 50 results. Export for complete data.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Metrics -->
+        <div x-show="performanceMetrics.length > 0" class="mt-6">
+            <div class="bg-gray-800 rounded-lg p-6">
+                <h2 class="text-xl font-bold mb-4">⚡ Performance Metrics</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <template x-for="metric in performanceMetrics" :key="metric.name">
+                        <div class="bg-gray-700 rounded p-4">
+                            <div class="font-medium" x-text="metric.name"></div>
+                            <div class="text-2xl font-bold" x-text="metric.value"></div>
+                            <div class="text-sm text-gray-400" x-text="metric.unit"></div>
+                        </div>
+                    </template>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Include all test scripts -->
+    <script src="/static/app.js"></script>
+    <script src="test_config.js"></script>
+    <script src="api_tests.js"></script>
+    <script src="security_tests.js"></script>
+    
+    <script>
+        function comprehensiveTestSuite() {
+            return {
+                // State
+                running: false,
+                hasResults: false,
+                currentTest: '',
+                selectedCategory: null,
+                
+                // Test configuration
+                testConfig: TEST_CONFIG,
+                
+                // Progress tracking
+                progress: { current: 0, total: 0 },
+                
+                // Results
+                consoleOutput: [],
+                allResults: [],
+                summary: { total: 0, passed: 0, failed: 0, warnings: 0, successRate: '0%' },
+                criticalIssues: [],
+                performanceMetrics: [],
+                
+                // Test suites
+                apiSuite: null,
+                securitySuite: null,
+                
+                // Test categories
+                testCategories: [
+                    { name: 'Browser Compatibility', count: 0, status: 'pending' },
+                    { name: 'Encryption/Decryption', count: 0, status: 'pending' },
+                    { name: 'UI Components', count: 0, status: 'pending' },
+                    { name: 'API Endpoints', count: 0, status: 'pending' },
+                    { name: 'Security Vulnerabilities', count: 0, status: 'pending' },
+                    { name: 'Performance', count: 0, status: 'pending' },
+                    { name: 'Accessibility', count: 0, status: 'pending' }
+                ],
+
+                init() {
+                    this.log('info', '🧪 BinCrypt QA Test Suite initialized');
+                    this.log('info', `Testing environment: ${this.testConfig.BASE_URL}`);
+                    
+                    // Initialize test suites
+                    this.apiSuite = new APITestSuite(this.testConfig.BASE_URL);
+                    this.securitySuite = new SecurityTestSuite(this.testConfig.BASE_URL);
+                },
+
+                async runAllTests() {
+                    this.running = true;
+                    this.clearResults();
+                    this.currentTest = 'Initializing comprehensive test suite...';
+                    this.log('info', '🚀 Starting comprehensive BinCrypt test suite...');
+                    
+                    try {
+                        // Calculate total tests
+                        this.progress.total = 100; // Rough estimate
+                        this.progress.current = 0;
+                        
+                        // Run all test categories
+                        await this.runBrowserCompatibilityTests();
+                        await this.runEncryptionTests(); 
+                        await this.runUITests();
+                        await this.runAPITests();
+                        await this.runSecurityTests();
+                        await this.runPerformanceTests();
+                        await this.runAccessibilityTests();
+                        
+                        this.generateFinalReport();
+                        this.log('info', '✅ Comprehensive test suite completed successfully');
+                        
+                    } catch (error) {
+                        this.log('error', `💥 Test suite error: ${error.message}`);
+                    } finally {
+                        this.running = false;
+                        this.currentTest = '';
+                        this.hasResults = true;
+                    }
+                },
+
+                async runBrowserCompatibilityTests() {
+                    this.currentTest = 'Testing browser compatibility...';
+                    this.updateCategoryStatus('Browser Compatibility', 'running');
+                    
+                    // Web Crypto API support
+                    if (window.crypto && window.crypto.subtle) {
+                        this.recordTest('Web Crypto API Support', 'PASS');
+                    } else {
+                        this.recordTest('Web Crypto API Support', 'FAIL', { 
+                            error: 'Web Crypto API not supported' 
+                        });
+                        this.addCriticalIssue('Web Crypto API Support', 'Encryption will not work without Web Crypto API');
+                    }
+
+                    // Required crypto functions
+                    const requiredFunctions = ['encrypt', 'decrypt', 'importKey', 'deriveKey', 'digest'];
+                    for (const func of requiredFunctions) {
+                        if (window.crypto?.subtle?.[func]) {
+                            this.recordTest(`Crypto Function: ${func}`, 'PASS');
+                        } else {
+                            this.recordTest(`Crypto Function: ${func}`, 'FAIL');
+                        }
+                        this.incrementProgress();
+                    }
+
+                    // Text encoding
+                    try {
+                        new TextEncoder();
+                        new TextDecoder();
+                        this.recordTest('Text Encoding Support', 'PASS');
+                    } catch (error) {
+                        this.recordTest('Text Encoding Support', 'FAIL', { error: error.message });
+                    }
+
+                    this.updateCategoryStatus('Browser Compatibility', 'completed');
+                    this.incrementProgress(5);
+                },
+
+                async runEncryptionTests() {
+                    this.currentTest = 'Testing encryption/decryption...';
+                    this.updateCategoryStatus('Encryption/Decryption', 'running');
+                    
+                    if (typeof encryptPaste !== 'function' || typeof decryptPaste !== 'function') {
+                        this.recordTest('Encryption Functions Available', 'FAIL', {
+                            error: 'Encryption functions not available'
+                        });
+                        this.updateCategoryStatus('Encryption/Decryption', 'completed');
+                        return;
+                    }
+
+                    const testCases = [
+                        { content: 'Hello World!', password: 'simple123' },
+                        { content: TEST_CONFIG.TEST_CONTENT.MEDIUM, password: 'Complex!Password#123' },
+                        { content: '🔐 Unicode test 测试', password: 'unicode-pass' },
+                        { content: JSON.stringify({test: true, data: [1,2,3]}), password: 'json-data' }
+                    ];
+
+                    for (const testCase of testCases) {
+                        try {
+                            const startTime = performance.now();
+                            const encrypted = await encryptPaste(testCase.content, testCase.password);
+                            const encryptTime = performance.now() - startTime;
+
+                            const decryptStart = performance.now();
+                            const decrypted = await decryptPaste(encrypted, testCase.password);
+                            const decryptTime = performance.now() - decryptStart;
+
+                            if (decrypted === testCase.content) {
+                                this.recordTest(`Encrypt/Decrypt: ${testCase.content.substring(0, 20)}...`, 'PASS', {
+                                    encryptTime: encryptTime.toFixed(2) + 'ms',
+                                    decryptTime: decryptTime.toFixed(2) + 'ms'
+                                });
+                            } else {
+                                this.recordTest(`Encrypt/Decrypt: ${testCase.content.substring(0, 20)}...`, 'FAIL', {
+                                    error: 'Decrypted content does not match original'
+                                });
+                            }
+                        } catch (error) {
+                            this.recordTest(`Encrypt/Decrypt: ${testCase.content.substring(0, 20)}...`, 'FAIL', {
+                                error: error.message
+                            });
+                        }
+                        this.incrementProgress();
+                    }
+
+                    // Test wrong password
+                    try {
+                        const encrypted = await encryptPaste('test', 'correct-password');
+                        await decryptPaste(encrypted, 'wrong-password');
+                        this.recordTest('Wrong Password Handling', 'FAIL', {
+                            error: 'Should have failed with wrong password'
+                        });
+                    } catch (error) {
+                        this.recordTest('Wrong Password Handling', 'PASS');
+                    }
+
+                    this.updateCategoryStatus('Encryption/Decryption', 'completed');
+                    this.incrementProgress(5);
+                },
+
+                async runUITests() {
+                    this.currentTest = 'Testing UI components...';
+                    this.updateCategoryStatus('UI Components', 'running');
+                    
+                    // Test Alpine.js is loaded
+                    if (window.Alpine) {
+                        this.recordTest('Alpine.js Framework', 'PASS');
+                    } else {
+                        this.recordTest('Alpine.js Framework', 'FAIL', {
+                            error: 'Alpine.js not loaded - UI interactions will not work'
+                        });
+                    }
+
+                    // Test required DOM elements
+                    const requiredElements = [
+                        { selector: 'textarea', name: 'Main Textarea' },
+                        { selector: 'input[type="password"]', name: 'Password Input' },
+                        { selector: 'button', name: 'Action Buttons' },
+                        { selector: '.password-strength', name: 'Password Strength Indicator' }
+                    ];
+
+                    for (const element of requiredElements) {
+                        const found = document.querySelector(element.selector);
+                        if (found) {
+                            this.recordTest(`UI Element: ${element.name}`, 'PASS');
+                        } else {
+                            this.recordTest(`UI Element: ${element.name}`, 'WARNING', {
+                                message: `${element.selector} not found on current page`
+                            });
+                        }
+                        this.incrementProgress();
+                    }
+
+                    this.updateCategoryStatus('UI Components', 'completed');
+                    this.incrementProgress(5);
+                },
+
+                async runAPITests() {
+                    this.currentTest = 'Testing API endpoints...';
+                    this.updateCategoryStatus('API Endpoints', 'running');
+                    
+                    try {
+                        const apiResults = await this.apiSuite.runAllTests();
+                        
+                        // Merge API test results
+                        this.allResults.push(...this.apiSuite.recorder.results);
+                        
+                        this.recordTest('API Test Suite', 'PASS', {
+                            totalTests: apiResults.total,
+                            passed: apiResults.passed,
+                            failed: apiResults.failed
+                        });
+                        
+                    } catch (error) {
+                        this.recordTest('API Test Suite', 'FAIL', {
+                            error: error.message
+                        });
+                    }
+                    
+                    this.updateCategoryStatus('API Endpoints', 'completed');
+                    this.incrementProgress(15);
+                },
+
+                async runSecurityTests() {
+                    this.currentTest = 'Running security vulnerability assessment...';
+                    this.updateCategoryStatus('Security Vulnerabilities', 'running');
+                    
+                    try {
+                        const securityResults = await this.securitySuite.runAllTests();
+                        
+                        // Merge security test results
+                        this.allResults.push(...this.securitySuite.recorder.results);
+                        
+                        // Add critical issues from security tests
+                        this.criticalIssues.push(...this.securitySuite.criticalIssues);
+                        
+                        this.recordTest('Security Test Suite', 'PASS', {
+                            totalTests: securityResults.total,
+                            vulnerabilities: this.securitySuite.vulnerabilities.length,
+                            criticalIssues: this.securitySuite.criticalIssues.length
+                        });
+                        
+                    } catch (error) {
+                        this.recordTest('Security Test Suite', 'FAIL', {
+                            error: error.message
+                        });
+                    }
+                    
+                    this.updateCategoryStatus('Security Vulnerabilities', 'completed');
+                    this.incrementProgress(20);
+                },
+
+                async runPerformanceTests() {
+                    this.currentTest = 'Running performance tests...';
+                    this.updateCategoryStatus('Performance', 'running');
+                    
+                    // Page load performance
+                    if (performance.timing) {
+                        const loadTime = performance.timing.loadEventEnd - performance.timing.navigationStart;
+                        this.performanceMetrics.push({
+                            name: 'Page Load Time',
+                            value: loadTime,
+                            unit: 'ms'
+                        });
+                        
+                        if (loadTime < 3000) {
+                            this.recordTest('Page Load Performance', 'PASS', { loadTime: `${loadTime}ms` });
+                        } else {
+                            this.recordTest('Page Load Performance', 'WARNING', { 
+                                loadTime: `${loadTime}ms`,
+                                message: 'Page load time > 3 seconds' 
+                            });
+                        }
+                    }
+
+                    // Encryption performance
+                    if (typeof encryptPaste === 'function') {
+                        const perfTests = [
+                            { size: 1024, name: '1KB' },
+                            { size: 10240, name: '10KB' },
+                            { size: 102400, name: '100KB' }
+                        ];
+
+                        for (const test of perfTests) {
+                            try {
+                                const content = 'x'.repeat(test.size);
+                                const password = 'perf-test';
+                                
+                                const startTime = performance.now();
+                                await encryptPaste(content, password);
+                                const endTime = performance.now();
+                                const duration = endTime - startTime;
+                                
+                                this.performanceMetrics.push({
+                                    name: `Encryption (${test.name})`,
+                                    value: duration.toFixed(2),
+                                    unit: 'ms'
+                                });
+                                
+                                const threshold = test.size < 10240 ? 200 : test.size < 102400 ? 1000 : 3000;
+                                
+                                if (duration < threshold) {
+                                    this.recordTest(`Encryption Performance (${test.name})`, 'PASS', {
+                                        duration: `${duration.toFixed(2)}ms`
+                                    });
+                                } else {
+                                    this.recordTest(`Encryption Performance (${test.name})`, 'WARNING', {
+                                        duration: `${duration.toFixed(2)}ms`,
+                                        message: 'Encryption slower than expected'
+                                    });
+                                }
+                                
+                            } catch (error) {
+                                this.recordTest(`Encryption Performance (${test.name})`, 'FAIL', {
+                                    error: error.message
+                                });
+                            }
+                            this.incrementProgress();
+                        }
+                    }
+                    
+                    this.updateCategoryStatus('Performance', 'completed');
+                    this.incrementProgress(5);
+                },
+
+                async runAccessibilityTests() {
+                    this.currentTest = 'Testing accessibility...';
+                    this.updateCategoryStatus('Accessibility', 'running');
+                    
+                    // Check for ARIA labels
+                    const inputs = document.querySelectorAll('input, textarea, button');
+                    let accessibleInputs = 0;
+                    
+                    inputs.forEach(input => {
+                        if (input.getAttribute('aria-label') || 
+                            input.getAttribute('aria-labelledby') ||
+                            input.closest('label') ||
+                            document.querySelector(`label[for="${input.id}"]`)) {
+                            accessibleInputs++;
+                        }
+                    });
+
+                    const accessibilityScore = inputs.length > 0 ? (accessibleInputs / inputs.length) * 100 : 100;
+                    
+                    if (accessibilityScore > 80) {
+                        this.recordTest('Accessibility Labels', 'PASS', {
+                            score: `${accessibilityScore.toFixed(1)}%`
+                        });
+                    } else {
+                        this.recordTest('Accessibility Labels', 'WARNING', {
+                            score: `${accessibilityScore.toFixed(1)}%`,
+                            message: 'Some inputs may lack proper labels'
+                        });
+                    }
+
+                    // Keyboard navigation
+                    const focusableElements = document.querySelectorAll(
+                        'a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])'
+                    );
+                    
+                    if (focusableElements.length > 0) {
+                        this.recordTest('Keyboard Navigation', 'PASS', {
+                            focusableElements: focusableElements.length
+                        });
+                    } else {
+                        this.recordTest('Keyboard Navigation', 'WARNING', {
+                            message: 'Limited keyboard navigation detected'
+                        });
+                    }
+                    
+                    this.updateCategoryStatus('Accessibility', 'completed');
+                    this.incrementProgress(5);
+                },
+
+                async runFrontendTests() {
+                    this.running = true;
+                    this.clearResults();
+                    
+                    try {
+                        await this.runBrowserCompatibilityTests();
+                        await this.runEncryptionTests();
+                        await this.runUITests();
+                        await this.runAccessibilityTests();
+                        
+                        this.generateFinalReport();
+                    } finally {
+                        this.running = false;
+                        this.hasResults = true;
+                    }
+                },
+
+                updateCategoryStatus(categoryName, status) {
+                    const category = this.testCategories.find(c => c.name === categoryName);
+                    if (category) {
+                        category.status = status;
+                        if (status === 'completed') {
+                            category.count = this.getTestsForCategory(categoryName).length;
+                        }
+                    }
+                },
+
+                getTestsForCategory(categoryName) {
+                    const categoryKeywords = {
+                        'Browser Compatibility': ['crypto', 'browser', 'support', 'api'],
+                        'Encryption/Decryption': ['encrypt', 'decrypt', 'password'],
+                        'UI Components': ['ui', 'element', 'alpine', 'component'],
+                        'API Endpoints': ['api', 'endpoint', 'paste', 'invoice'],
+                        'Security Vulnerabilities': ['security', 'xss', 'injection', 'vulnerability'],
+                        'Performance': ['performance', 'load', 'time'],
+                        'Accessibility': ['accessibility', 'aria', 'keyboard']
+                    };
+                    
+                    const keywords = categoryKeywords[categoryName] || [];
+                    return this.allResults.filter(result => 
+                        keywords.some(keyword => 
+                            result.testName.toLowerCase().includes(keyword.toLowerCase())
+                        )
+                    );
+                },
+
+                incrementProgress(amount = 1) {
+                    this.progress.current = Math.min(this.progress.current + amount, this.progress.total);
+                },
+
+                recordTest(testName, status, details = {}) {
+                    const result = {
+                        testName,
+                        status,
+                        timestamp: new Date().toISOString(),
+                        details,
+                        duration: details.executionTime || 0
+                    };
+                    
+                    this.allResults.push(result);
+                    
+                    const icon = {
+                        'PASS': '✅',
+                        'FAIL': '❌', 
+                        'WARNING': '⚠️',
+                        'SKIP': '⏭️',
+                        'ERROR': '💥'
+                    }[status];
+                    
+                    this.log(status.toLowerCase(), `${icon} ${testName}`);
+                    
+                    if (status === 'FAIL' && details.critical) {
+                        this.addCriticalIssue(testName, details.error || 'Critical test failure');
+                    }
+                },
+
+                addCriticalIssue(name, description) {
+                    this.criticalIssues.push({
+                        name,
+                        details: { message: description },
+                        severity: 'CRITICAL',
+                        timestamp: new Date().toISOString()
+                    });
+                },
+
+                log(type, message) {
+                    const timestamp = new Date().toLocaleTimeString();
+                    this.consoleOutput.push({
+                        id: Date.now() + Math.random(),
+                        type,
+                        message,
+                        timestamp
+                    });
+                    
+                    // Auto-scroll console
+                    this.$nextTick(() => {
+                        const console = this.$refs.console;
+                        if (console) {
+                            console.scrollTop = console.scrollHeight;
+                        }
+                    });
+                },
+
+                generateFinalReport() {
+                    const total = this.allResults.length;
+                    const passed = this.allResults.filter(r => r.status === 'PASS').length;
+                    const failed = this.allResults.filter(r => r.status === 'FAIL').length;
+                    const warnings = this.allResults.filter(r => r.status === 'WARNING').length;
+                    const successRate = total > 0 ? ((passed / total) * 100).toFixed(1) + '%' : '0%';
+                    
+                    this.summary = { total, passed, failed, warnings, successRate };
+                    
+                    this.log('info', `📊 Final Report: ${total} tests, ${passed} passed, ${failed} failed, ${warnings} warnings`);
+                    this.log('info', `🎯 Success Rate: ${successRate}`);
+                    
+                    if (this.criticalIssues.length > 0) {
+                        this.log('error', `🚨 ${this.criticalIssues.length} critical security issues found!`);
+                    }
+                },
+
+                clearResults() {
+                    this.allResults = [];
+                    this.consoleOutput = [];
+                    this.criticalIssues = [];
+                    this.performanceMetrics = [];
+                    this.summary = { total: 0, passed: 0, failed: 0, warnings: 0, successRate: '0%' };
+                    this.progress = { current: 0, total: 0 };
+                    this.hasResults = false;
+                    
+                    // Reset category status
+                    this.testCategories.forEach(cat => {
+                        cat.status = 'pending';
+                        cat.count = 0;
+                    });
+                },
+
+                clearConsole() {
+                    this.consoleOutput = [];
+                },
+
+                exportResults() {
+                    const report = {
+                        summary: this.summary,
+                        testResults: this.allResults,
+                        criticalIssues: this.criticalIssues,
+                        performanceMetrics: this.performanceMetrics,
+                        testCategories: this.testCategories,
+                        exportTime: new Date().toISOString(),
+                        environment: {
+                            baseUrl: this.testConfig.BASE_URL,
+                            userAgent: navigator.userAgent,
+                            timestamp: new Date().toISOString()
+                        }
+                    };
+                    
+                    const blob = new Blob([JSON.stringify(report, null, 2)], {
+                        type: 'application/json'
+                    });
+                    
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `bincrypt-qa-report-${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+                    
+                    this.log('info', '📊 Test report exported successfully');
+                }
+            }
+        }
+    </script>
+</body>
+</html>

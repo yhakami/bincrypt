@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="coinzilla" content="14afc2e3eab80c10835dba98e1357306" />
+    <title>News - BinCrypt</title>
+    <meta name="description" content="Latest updates and news from BinCrypt - Zero-Knowledge Encrypted Pastebin">
+    <meta name="robots" content="index, follow">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg: #000;
+            --surface: #0a0a0a;
+            --border: #222;
+            --text: #fff;
+            --text-dim: #888;
+            --accent: #fff;
+        }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        /* Header */
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 0;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        
+        nav {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        nav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        
+        nav a:hover {
+            color: var(--text);
+        }
+        
+        nav a.active {
+            color: var(--text);
+        }
+        
+        /* Main Container */
+        .container {
+            max-width: 900px;
+            margin: 3rem auto;
+            padding: 0 2rem;
+        }
+        
+        /* Page Header */
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .page-subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+        }
+        
+        /* News Items */
+        .news-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        
+        .news-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: border-color 0.2s;
+        }
+        
+        .news-item:hover {
+            border-color: #444;
+        }
+        
+        .news-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .news-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .news-date {
+            color: var(--text-dim);
+            font-size: 0.875rem;
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+        }
+        
+        .news-content {
+            color: var(--text-dim);
+            line-height: 1.7;
+        }
+        
+        .news-tags {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .news-tag {
+            background: #111;
+            color: var(--text-dim);
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .news-tag.security { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .news-tag.feature { color: #10b981; background: rgba(16, 185, 129, 0.1); }
+        .news-tag.update { color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
+        .news-tag.maintenance { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+        
+        /* Links */
+        a {
+            color: var(--text);
+            text-decoration: underline;
+            text-decoration-color: var(--text-dim);
+            transition: text-decoration-color 0.2s;
+        }
+        
+        a:hover {
+            text-decoration-color: var(--text);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 0 1rem;
+            }
+            
+            nav {
+                gap: 1rem;
+            }
+            
+            .container {
+                padding: 0 1rem;
+                margin: 2rem auto;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .news-item {
+                padding: 1.5rem;
+            }
+            
+            .news-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">BinCrypt</div>
+            <nav>
+                <a href="/static/index.html">HOME</a>
+                <a href="/static/news.html" class="active">NEWS</a>
+                <a href="/static/about.html">ABOUT</a>
+                <a href="/static/premium.html" style="color: #fbbf24;">PREMIUM</a>
+            </nav>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">News & Updates</h1>
+            <p class="page-subtitle">Stay informed about the latest security improvements and features</p>
+        </div>
+        
+        <div class="news-list">
+            <article class="news-item">
+                <div class="news-header">
+                    <div>
+                        <h2 class="news-title">Enhanced Zero-Knowledge Architecture</h2>
+                        <div class="news-date">2024-01-15</div>
+                    </div>
+                </div>
+                <div class="news-content">
+                    <p>We've implemented a new zero-knowledge proof system that ensures even we cannot decrypt your pastes. All encryption now happens client-side with military-grade AES-256-GCM encryption before data leaves your browser.</p>
+                    <p>This update includes improved key derivation using PBKDF2 with 100,000 iterations and cryptographically secure random salt generation for each paste.</p>
+                </div>
+                <div class="news-tags">
+                    <span class="news-tag security">Security</span>
+                    <span class="news-tag feature">Feature</span>
+                </div>
+            </article>
+            
+            <article class="news-item">
+                <div class="news-header">
+                    <div>
+                        <h2 class="news-title">Premium Features Now Available</h2>
+                        <div class="news-date">2024-01-10</div>
+                    </div>
+                </div>
+                <div class="news-content">
+                    <p>Introducing BinCrypt Premium with extended features for power users. Premium subscribers get 90-day paste expiration (vs 7 days), 5MB file size limit (vs 512KB), and priority support.</p>
+                    <p>We accept Bitcoin payments through BTCPay Server for maximum privacy. No personal information required - just paste, pay, and encrypt.</p>
+                </div>
+                <div class="news-tags">
+                    <span class="news-tag feature">Feature</span>
+                    <span class="news-tag update">Update</span>
+                </div>
+            </article>
+            
+            <article class="news-item">
+                <div class="news-header">
+                    <div>
+                        <h2 class="news-title">Burn After Read Implementation</h2>
+                        <div class="news-date">2024-01-05</div>
+                    </div>
+                </div>
+                <div class="news-content">
+                    <p>New "Burn After Read" feature automatically deletes your paste after the first view. Perfect for sharing sensitive information that should only be accessed once.</p>
+                    <p>Combined with password protection, this provides an additional layer of security for your most sensitive data.</p>
+                </div>
+                <div class="news-tags">
+                    <span class="news-tag security">Security</span>
+                    <span class="news-tag feature">Feature</span>
+                </div>
+            </article>
+            
+            <article class="news-item">
+                <div class="news-header">
+                    <div>
+                        <h2 class="news-title">Syntax Highlighting for 18+ Languages</h2>
+                        <div class="news-date">2024-01-01</div>
+                    </div>
+                </div>
+                <div class="news-content">
+                    <p>Enhanced code sharing with syntax highlighting support for JavaScript, Python, Go, Rust, HTML, CSS, JSON, Bash, TypeScript, Java, C++, C#, PHP, Ruby, YAML, SQL, and Markdown.</p>
+                    <p>All highlighting is processed client-side to maintain our zero-knowledge principles.</p>
+                </div>
+                <div class="news-tags">
+                    <span class="news-tag feature">Feature</span>
+                    <span class="news-tag update">Update</span>
+                </div>
+            </article>
+            
+            <article class="news-item">
+                <div class="news-header">
+                    <div>
+                        <h2 class="news-title">Infrastructure Security Audit Complete</h2>
+                        <div class="news-date">2023-12-28</div>
+                    </div>
+                </div>
+                <div class="news-content">
+                    <p>Third-party security audit completed with zero critical vulnerabilities found. All recommendations have been implemented including enhanced rate limiting, improved input validation, and hardened server configuration.</p>
+                    <p>Full audit report available on our <a href="https://github.com/bincrypt/security-audits">GitHub repository</a>.</p>
+                </div>
+                <div class="news-tags">
+                    <span class="news-tag security">Security</span>
+                    <span class="news-tag maintenance">Maintenance</span>
+                </div>
+            </article>
+            
+            <article class="news-item">
+                <div class="news-header">
+                    <div>
+                        <h2 class="news-title">Open Source Release</h2>
+                        <div class="news-date">2023-12-20</div>
+                    </div>
+                </div>
+                <div class="news-content">
+                    <p>BinCrypt is now fully open source! Review our code, contribute improvements, or host your own instance. Transparency is key to building trust in privacy tools.</p>
+                    <p>Find us on <a href="https://github.com/bincrypt/bincrypt">GitHub</a> and join our community of privacy-focused developers.</p>
+                </div>
+                <div class="news-tags">
+                    <span class="news-tag feature">Feature</span>
+                    <span class="news-tag update">Update</span>
+                </div>
+            </article>
+        </div>
+    </div>
+    <script src="/static/coinzilla-ads.js"></script>
+    <script>
+        // Insert in-content ads between news items
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!window.BinCryptCoinzillaAds) return;
+            
+            const newsList = document.querySelector('.news-list');
+            const newsItems = newsList.querySelectorAll('.news-item');
+            
+            // Add ad after every 2 news items
+            newsItems.forEach((item, index) => {
+                if ((index + 1) % 2 === 0 && index < newsItems.length - 1) {
+                    const adContainer = document.createElement('div');
+                    adContainer.id = `news-ad-${index}`;
+                    adContainer.style.margin = '2rem 0';
+                    
+                    item.insertAdjacentElement('afterend', adContainer);
+                    
+                    const adElement = BinCryptCoinzillaAds.createAdContainer('rectangle300x250');
+                    adContainer.appendChild(adElement);
+                }
+            });
+            
+            // Trigger lazy loading
+            if (window.binCryptCoinzillaAds) {
+                window.binCryptCoinzillaAds.setupLazyLoading();
+            }
+        });
+    </script>
+</body>
+</html>

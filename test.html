@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BinCrypt - Encryption Test Suite</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen p-8">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-8">BinCrypt Encryption Test Suite</h1>
+        
+        <div class="bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Browser Compatibility Check</h2>
+            <div id="compatibility" class="space-y-2"></div>
+        </div>
+
+        <div class="bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Encryption/Decryption Test</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Test Content</label>
+                    <textarea id="testContent" class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded"
+                        rows="4">This is a test message to verify encryption and decryption functionality!</textarea>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Test Password</label>
+                    <input type="password" id="testPassword" value="test-password-123"
+                        class="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded">
+                </div>
+                
+                <button onclick="runEncryptionTest()" 
+                    class="bg-blue-600 hover:bg-blue-700 px-6 py-2 rounded font-medium transition">
+                    Run Encryption Test
+                </button>
+            </div>
+            
+            <div id="encryptionResult" class="mt-6 hidden">
+                <h3 class="font-semibold mb-2">Test Results:</h3>
+                <div class="bg-gray-900 p-4 rounded space-y-2 text-sm font-mono"></div>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 rounded-lg p-6 mb-6">
+            <h2 class="text-xl font-semibold mb-4">Performance Test</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Data Size</label>
+                    <select id="perfSize" class="px-4 py-2 bg-gray-700 border border-gray-600 rounded">
+                        <option value="1024">1 KB</option>
+                        <option value="10240">10 KB</option>
+                        <option value="102400">100 KB</option>
+                        <option value="524288">512 KB</option>
+                    </select>
+                </div>
+                
+                <button onclick="runPerformanceTest()" 
+                    class="bg-green-600 hover:bg-green-700 px-6 py-2 rounded font-medium transition">
+                    Run Performance Test
+                </button>
+            </div>
+            
+            <div id="performanceResult" class="mt-6 hidden">
+                <h3 class="font-semibold mb-2">Performance Results:</h3>
+                <div class="bg-gray-900 p-4 rounded space-y-2 text-sm"></div>
+            </div>
+        </div>
+
+        <div class="bg-gray-800 rounded-lg p-6">
+            <h2 class="text-xl font-semibold mb-4">API Integration Test</h2>
+            
+            <button onclick="runAPITest()" 
+                class="bg-yellow-600 hover:bg-yellow-700 px-6 py-2 rounded font-medium transition">
+                Test API Endpoints
+            </button>
+            
+            <div id="apiResult" class="mt-6 hidden">
+                <h3 class="font-semibold mb-2">API Test Results:</h3>
+                <div class="bg-gray-900 p-4 rounded space-y-2 text-sm"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/app.js"></script>
+    <script>
+        // Check browser compatibility
+        function checkCompatibility() {
+            const results = [];
+            
+            // Check Web Crypto API
+            if (window.crypto && window.crypto.subtle) {
+                results.push('✅ Web Crypto API supported');
+            } else {
+                results.push('❌ Web Crypto API not supported');
+            }
+            
+            // Check specific crypto functions
+            const functions = ['encrypt', 'decrypt', 'importKey', 'deriveKey'];
+            let allSupported = true;
+            
+            if (window.crypto && window.crypto.subtle) {
+                functions.forEach(func => {
+                    if (typeof window.crypto.subtle[func] === 'function') {
+                        results.push(`✅ crypto.subtle.${func} available`);
+                    } else {
+                        results.push(`❌ crypto.subtle.${func} not available`);
+                        allSupported = false;
+                    }
+                });
+            }
+            
+            // Check encoding APIs
+            try {
+                new TextEncoder();
+                new TextDecoder();
+                results.push('✅ TextEncoder/TextDecoder supported');
+            } catch (e) {
+                results.push('❌ TextEncoder/TextDecoder not supported');
+            }
+            
+            // Display results
+            const container = document.getElementById('compatibility');
+            container.innerHTML = results.map(r => `<div>${r}</div>`).join('');
+        }
+
+        // Run encryption test
+        async function runEncryptionTest() {
+            const content = document.getElementById('testContent').value;
+            const password = document.getElementById('testPassword').value;
+            const resultDiv = document.getElementById('encryptionResult');
+            const resultsContainer = resultDiv.querySelector('div');
+            
+            resultsContainer.innerHTML = 'Running test...';
+            resultDiv.classList.remove('hidden');
+            
+            try {
+                // Test encryption
+                console.log('Starting encryption...');
+                const startEncrypt = performance.now();
+                const encrypted = await encryptPaste(content, password);
+                const encryptTime = performance.now() - startEncrypt;
+                
+                // Test decryption
+                console.log('Starting decryption...');
+                const startDecrypt = performance.now();
+                const decrypted = await decryptPaste(encrypted, password);
+                const decryptTime = performance.now() - startDecrypt;
+                
+                // Verify content matches
+                const success = content === decrypted;
+                
+                // Display results
+                const results = [
+                    `Original length: ${content.length} characters`,
+                    `Encrypted length: ${encrypted.length} characters`,
+                    `Encryption time: ${encryptTime.toFixed(2)}ms`,
+                    `Decryption time: ${decryptTime.toFixed(2)}ms`,
+                    `Encrypted data (truncated): ${encrypted.substring(0, 50)}...`,
+                    `Decryption ${success ? '✅ SUCCESS' : '❌ FAILED'}: Content ${success ? 'matches' : 'does not match'}`
+                ];
+                
+                resultsContainer.innerHTML = results.map(r => `<div>${r}</div>`).join('');
+                
+                if (!success) {
+                    resultsContainer.innerHTML += `<div class="text-red-400 mt-2">Expected: "${content}"</div>`;
+                    resultsContainer.innerHTML += `<div class="text-red-400">Got: "${decrypted}"</div>`;
+                }
+                
+            } catch (error) {
+                resultsContainer.innerHTML = `<div class="text-red-400">❌ Test failed: ${error.message}</div>`;
+                console.error('Encryption test error:', error);
+            }
+        }
+
+        // Run performance test
+        async function runPerformanceTest() {
+            const size = parseInt(document.getElementById('perfSize').value);
+            const resultDiv = document.getElementById('performanceResult');
+            const resultsContainer = resultDiv.querySelector('div');
+            
+            resultsContainer.innerHTML = 'Running performance test...';
+            resultDiv.classList.remove('hidden');
+            
+            try {
+                // Generate test data
+                const testData = 'x'.repeat(size);
+                const password = 'performance-test-password';
+                
+                // Run multiple iterations
+                const iterations = 10;
+                let totalEncryptTime = 0;
+                let totalDecryptTime = 0;
+                
+                for (let i = 0; i < iterations; i++) {
+                    const startEncrypt = performance.now();
+                    const encrypted = await encryptPaste(testData, password);
+                    totalEncryptTime += performance.now() - startEncrypt;
+                    
+                    const startDecrypt = performance.now();
+                    await decryptPaste(encrypted, password);
+                    totalDecryptTime += performance.now() - startDecrypt;
+                }
+                
+                const avgEncryptTime = totalEncryptTime / iterations;
+                const avgDecryptTime = totalDecryptTime / iterations;
+                
+                const results = [
+                    `Data size: ${(size / 1024).toFixed(1)} KB`,
+                    `Iterations: ${iterations}`,
+                    `Average encryption time: ${avgEncryptTime.toFixed(2)}ms`,
+                    `Average decryption time: ${avgDecryptTime.toFixed(2)}ms`,
+                    `Encryption throughput: ${(size / 1024 / (avgEncryptTime / 1000)).toFixed(2)} KB/s`,
+                    `Decryption throughput: ${(size / 1024 / (avgDecryptTime / 1000)).toFixed(2)} KB/s`
+                ];
+                
+                resultsContainer.innerHTML = results.map(r => `<div>${r}</div>`).join('');
+                
+            } catch (error) {
+                resultsContainer.innerHTML = `<div class="text-red-400">❌ Performance test failed: ${error.message}</div>`;
+            }
+        }
+
+        // Test API endpoints
+        async function runAPITest() {
+            const resultDiv = document.getElementById('apiResult');
+            const resultsContainer = resultDiv.querySelector('div');
+            
+            resultsContainer.innerHTML = 'Testing API endpoints...';
+            resultDiv.classList.remove('hidden');
+            
+            const results = [];
+            
+            try {
+                // Test paste creation endpoint
+                const testContent = 'API test content ' + new Date().toISOString();
+                const encrypted = await encryptPaste(testContent, 'api-test-password');
+                
+                const response = await fetch('/api/paste', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        ciphertext: encrypted,
+                        expiry_seconds: 3600
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    results.push(`✅ POST /api/paste - Status: ${response.status}`);
+                    results.push(`   Paste ID: ${data.id}`);
+                    results.push(`   Expires: ${new Date(data.expires_at).toLocaleString()}`);
+                } else {
+                    results.push(`❌ POST /api/paste - Status: ${response.status}`);
+                }
+                
+                // Test invoice creation endpoint
+                const invoiceResponse = await fetch('/api/invoice', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tier: 'premium' })
+                });
+                
+                if (invoiceResponse.ok) {
+                    results.push(`✅ POST /api/invoice - Status: ${invoiceResponse.status}`);
+                } else {
+                    results.push(`⚠️  POST /api/invoice - Status: ${invoiceResponse.status} (BTCPay not configured)`);
+                }
+                
+            } catch (error) {
+                results.push(`❌ API test error: ${error.message}`);
+            }
+            
+            resultsContainer.innerHTML = results.map(r => `<div>${r}</div>`).join('');
+        }
+
+        // Run compatibility check on load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkCompatibility();
+        });
+    </script>
+</body>
+</html>
