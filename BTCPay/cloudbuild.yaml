@@ -1,0 +1,163 @@
+# Cloud Build configuration for BTCPay Server deployment
+# This pipeline builds, pushes, and deploys BTCPay Server to Cloud Run
+
+substitutions:
+  _PROJECT_ID: ${PROJECT_ID}
+  _REGION: us-central1
+  _SERVICE_NAME: btcpay-server
+  _IMAGE_NAME: btcpay-server
+  _ARTIFACT_REGISTRY: ${_REGION}-docker.pkg.dev/${_PROJECT_ID}/btcpay
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+  
+steps:
+  # Step 1: Build BTCPay Server Docker image
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'build-btcpay'
+    args:
+      - 'build'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/${_IMAGE_NAME}:${COMMIT_SHA}'
+      - '-t'
+      - '${_ARTIFACT_REGISTRY}/${_IMAGE_NAME}:latest'
+      - '-f'
+      - 'BTCPay/Dockerfile'
+      - 'BTCPay/'
+    waitFor: ['-']
+
+  # Step 2: Push image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    id: 'push-btcpay'
+    args:
+      - 'push'
+      - '--all-tags'
+      - '${_ARTIFACT_REGISTRY}/${_IMAGE_NAME}'
+    waitFor: ['build-btcpay']
+
+  # Step 3: Create secret accessor service account if not exists
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:alpine'
+    id: 'setup-service-account'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Check if service account exists
+        if ! gcloud iam service-accounts describe btcpay-server@${_PROJECT_ID}.iam.gserviceaccount.com &>/dev/null; then
+          echo "Creating service account..."
+          gcloud iam service-accounts create btcpay-server \
+            --display-name="BTCPay Server Service Account"
+        fi
+        
+        # Grant necessary permissions
+        gcloud projects add-iam-policy-binding ${_PROJECT_ID} \
+          --member="serviceAccount:btcpay-server@${_PROJECT_ID}.iam.gserviceaccount.com" \
+          --role="roles/secretmanager.secretAccessor"
+        
+        gcloud projects add-iam-policy-binding ${_PROJECT_ID} \
+          --member="serviceAccount:btcpay-server@${_PROJECT_ID}.iam.gserviceaccount.com" \
+          --role="roles/logging.logWriter"
+        
+        gcloud projects add-iam-policy-binding ${_PROJECT_ID} \
+          --member="serviceAccount:btcpay-server@${_PROJECT_ID}.iam.gserviceaccount.com" \
+          --role="roles/monitoring.metricWriter"
+    waitFor: ['-']
+
+  # Step 4: Deploy to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:alpine'
+    id: 'deploy-cloud-run'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image=${_ARTIFACT_REGISTRY}/${_IMAGE_NAME}:${COMMIT_SHA}'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+      - '--service-account=btcpay-server@${_PROJECT_ID}.iam.gserviceaccount.com'
+      - '--port=8080'
+      - '--cpu=1'
+      - '--memory=512Mi'
+      - '--min-instances=0'
+      - '--max-instances=3'
+      - '--concurrency=100'
+      - '--timeout=300'
+      - '--set-env-vars=GOOGLE_CLOUD_PROJECT=${_PROJECT_ID}'
+      - '--set-secrets=BTCPAY_POSTGRES=btcpay-postgres-connection:latest,BTCPAY_EXTERNALURL=btcpay-external-url:latest'
+      - '--vpc-connector=projects/${_PROJECT_ID}/locations/${_REGION}/connectors/btcpay-connector'
+      - '--vpc-egress=private-ranges-only'
+      - '--execution-environment=gen2'
+      - '--labels=app=btcpay,environment=production'
+      - '--ingress=all'
+      - '--health-check-path=/api/v1/health'
+    waitFor: ['push-btcpay', 'setup-service-account']
+
+  # Step 5: Configure Cloud Run service for HTTPS
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:alpine'
+    id: 'configure-https'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Get the Cloud Run service URL
+        SERVICE_URL=$(gcloud run services describe ${_SERVICE_NAME} \
+          --region=${_REGION} \
+          --format='value(status.url)')
+        
+        echo "BTCPay Server deployed at: $SERVICE_URL"
+        
+        # Update BTCPAY_HOST secret with the actual URL
+        echo -n "$SERVICE_URL" | gcloud secrets versions add btcpay-external-url --data-file=-
+    waitFor: ['deploy-cloud-run']
+
+  # Step 6: Set up monitoring alerts
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk:alpine'
+    id: 'setup-monitoring'
+    entrypoint: 'bash'
+    args:
+      - '-c'
+      - |
+        # Create uptime check
+        gcloud alpha monitoring uptime create btcpay-uptime \
+          --display-name="BTCPay Server Uptime Check" \
+          --resource-type=uptime-url \
+          --host-header="btcpay.${_PROJECT_ID}.run.app" \
+          --path="/api/v1/health" \
+          --port=443 \
+          --use-ssl \
+          --check-frequency=60s
+        
+        # Create alerting policy for downtime
+        cat > /tmp/alert-policy.json << EOF
+        {
+          "displayName": "BTCPay Server Down",
+          "conditions": [{
+            "displayName": "Uptime check failure",
+            "conditionThreshold": {
+              "filter": "resource.type=\"uptime_url\" AND metric.type=\"monitoring.googleapis.com/uptime_check/check_passed\"",
+              "comparison": "COMPARISON_LT",
+              "thresholdValue": 1,
+              "duration": "60s"
+            }
+          }],
+          "notificationChannels": [],
+          "alertStrategy": {
+            "autoClose": "1800s"
+          }
+        }
+        EOF
+        
+        gcloud alpha monitoring policies create --policy-from-file=/tmp/alert-policy.json
+    waitFor: ['deploy-cloud-run']
+
+timeout: 1800s
+
+# Trigger configuration
+# This build triggers on pushes to the main branch
+# Configure in Cloud Console: Build Triggers -> Create Trigger
+# - Name: btcpay-server-deploy
+# - Event: Push to branch
+# - Branch: ^main$
+# - Build Configuration: Cloud Build configuration file
+# - Location: /BTCPay/cloudbuild.yaml

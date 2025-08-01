@@ -1,0 +1,71 @@
+# Bitcoin Core Configuration for BTCPay Server
+# This configuration is optimized for Google Cloud Compute Engine
+
+# Network settings
+network: mainnet
+listen: 1
+discover: 1
+dns: 1
+dnsseed: 1
+listenonion: 0
+
+# RPC settings
+server: 1
+rest: 1
+rpcbind: 0.0.0.0:43782
+rpcallowip: 10.0.0.0/24
+rpcport: 43782
+
+# Connection settings
+maxconnections: 125
+maxuploadtarget: 5000  # 5GB per day upload limit
+
+# Mempool settings
+maxmempool: 300
+mempoolexpiry: 336
+
+# Performance settings
+dbcache: 450  # Adjust based on available RAM
+maxorphantx: 100
+par: -1  # Use all CPU cores
+
+# Pruning (to save disk space on free tier)
+prune: 10000  # Keep last 10GB of blocks to fit in 30GB disk
+
+# Logging
+debug: 0
+printtoconsole: 1
+logtimestamps: 1
+logips: 1
+
+# Security
+# Authentication is handled via environment variables
+
+# ZMQ settings for BTCPay
+zmqpubrawblock: tcp://0.0.0.0:28332
+zmqpubrawtx: tcp://0.0.0.0:28333
+zmqpubhashblock: tcp://0.0.0.0:28334
+
+# Index settings (required for BTCPay)
+txindex: 1
+addressindex: 1
+timestampindex: 1
+spentindex: 1
+
+# Wallet settings
+disablewallet: 0
+walletbroadcast: 1
+
+# Fee settings
+paytxfee: 0.00001
+mintxfee: 0.00001
+minrelaytxfee: 0.00001
+
+# Port configuration
+port: 39388
+whitelist: 0.0.0.0/0
+
+# Additional optimizations for Cloud environment
+persistmempool: 1
+blocksonly: 0
+reindex: 0

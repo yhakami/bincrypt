@@ -1,0 +1,133 @@
+version: "3.7"
+
+services:
+  btcpayserver:
+    image: btcpayserver/btcpayserver:1.11.7
+    restart: unless-stopped
+    container_name: btcpayserver
+    environment:
+      # Basic BTCPay configuration
+      BTCPAY_DATADIR: /datadir
+      BTCPAY_PLUGINDIR: /datadir/plugins
+      BTCPAY_DOCKERDEPLOYMENT: "false"
+      BTCPAY_POSTGRES: "User ID=${POSTGRES_USER};Password=${POSTGRES_PASSWORD};Host=${POSTGRES_HOST};Port=5432;Database=${POSTGRES_DB};"
+      BTCPAY_NETWORK: mainnet
+      BTCPAY_BIND: 0.0.0.0:8080
+      BTCPAY_ROOTPATH: /
+      BTCPAY_DEBUGLOG: btcpay.log
+      BTCPAY_DEBUGLOGLEVEL: 2
+      
+      # Security settings
+      BTCPAY_ALLOWADMINREGISTRATION: "false"
+      BTCPAY_DISABLEREGISTRATION: "false"
+      
+      # External services
+      BTCPAY_EXTERNALURL: ${BTCPAY_HOST}
+      BTCPAY_SSHKEYFILE: ""
+      BTCPAY_SSHKEYFILEPASSWORD: ""
+      
+      # Bitcoin configuration
+      BTCPAY_CHAINS: btc
+      BTCPAY_BTCEXPLORERURL: https://mempool.space/
+      BTCPAY_BTCEXPLORERCOOKIEFILEPATH: ""
+      
+      # Lightning Network (optional)
+      BTCPAY_BTCLIGHTNING: ""
+      
+      # Additional security headers
+      BTCPAY_CUSTOMROOTPATH: ""
+      BTCPAY_TORRCFILE: ""
+      BTCPAY_SOCKSENDPOINT: ""
+    expose:
+      - "8080"
+    ports:
+      - "8080:8080"
+    volumes:
+      - btcpay_datadir:/datadir
+      - btcpay_plugindir:/datadir/plugins
+    networks:
+      - btcpayserver_default
+    depends_on:
+      - postgres
+      - bitcoin
+
+  postgres:
+    image: postgres:14-alpine
+    restart: unless-stopped
+    container_name: btcpay_postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-btcpayserver}
+      POSTGRES_USER: ${POSTGRES_USER:-btcpay}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_HOST_AUTH_METHOD: md5
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - btcpayserver_default
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-btcpay}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  bitcoin:
+    image: btcpayserver/bitcoin:24.0.1
+    restart: unless-stopped
+    container_name: btcpay_bitcoin
+    environment:
+      BITCOIN_NETWORK: ${BITCOIN_NETWORK:-mainnet}
+      BITCOIN_WALLETDIR: "/data/wallets"
+      BITCOIN_EXTRA_ARGS: |
+        server=1
+        listen=1
+        discover=1
+        rest=1
+        listenonion=0
+        rpcuser=${BITCOIN_RPC_USER}
+        rpcpassword=${BITCOIN_RPC_PASSWORD}
+        rpcauth=${BITCOIN_RPC_AUTH}
+        rpcbind=0.0.0.0:43782
+        rpcallowip=0.0.0.0/0
+        port=39388
+        whitelist=0.0.0.0/0
+        zmqpubrawblock=tcp://0.0.0.0:28332
+        zmqpubrawtx=tcp://0.0.0.0:28333
+        zmqpubhashblock=tcp://0.0.0.0:28334
+    expose:
+      - "43782"
+      - "39388"
+      - "28332"
+      - "28333"
+      - "28334"
+    volumes:
+      - bitcoin_datadir:/data
+    networks:
+      - btcpayserver_default
+
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    container_name: btcpay_nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./configs/nginx.conf:/etc/nginx/nginx.conf:ro
+      - nginx_certs:/etc/letsencrypt
+      - nginx_www:/var/www/certbot
+    depends_on:
+      - btcpayserver
+    networks:
+      - btcpayserver_default
+
+volumes:
+  btcpay_datadir:
+  btcpay_plugindir:
+  postgres_data:
+  bitcoin_datadir:
+  nginx_certs:
+  nginx_www:
+
+networks:
+  btcpayserver_default:
+    driver: bridge
