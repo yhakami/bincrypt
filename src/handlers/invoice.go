@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 
 	"bincrypt/src/models"
 	"bincrypt/src/services"
@@ -16,24 +17,24 @@ import (
 
 // InvoiceHandler handles invoice operations
 type InvoiceHandler struct {
-	invoiceService *services.InvoiceService
+	invoiceService services.InvoiceServiceInterface
 }
 
 // NewInvoiceHandler creates a new invoice handler
-func NewInvoiceHandler(invoiceService *services.InvoiceService) *InvoiceHandler {
+func NewInvoiceHandler(invoiceService services.InvoiceServiceInterface) *InvoiceHandler {
 	return &InvoiceHandler{invoiceService: invoiceService}
 }
 
 // CreateInvoice handles invoice creation
 func (h *InvoiceHandler) CreateInvoice(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1MB max
-	
+
 	var req models.CreateInvoiceRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "Invalid request", http.StatusBadRequest)
 		return
 	}
-	
+
 	ctx := r.Context()
 	invoice, err := h.invoiceService.CreateInvoice(ctx, req.Tier)
 	if err != nil {
@@ -41,7 +42,7 @@ func (h *InvoiceHandler) CreateInvoice(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Failed to create invoice", http.StatusInternalServerError)
 		return
 	}
-	
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(invoice)
 }
@@ -54,49 +55,59 @@ func (h *InvoiceHandler) PaymentWebhook(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
 		return
 	}
-	
-	// Verify signature if secret is set
-	secret := os.Getenv("BTCPAY_WEBHOOK_SECRET")
+
+	// Verify signature if secret is available
+	secret := getWebhookSecret()
 	if secret != "" {
 		sig := r.Header.Get("BTCPay-Sig")
-		if sig == "" {
+		nonce := r.Header.Get("BTCPay-Nonce")
+		if sig == "" || nonce == "" {
 			http.Error(w, "Missing webhook signature", http.StatusUnauthorized)
 			return
 		}
-		
+
 		mac := hmac.New(sha256.New, []byte(secret))
+		mac.Write([]byte(nonce))
 		mac.Write(body)
 		expectedSig := "sha256=" + hex.EncodeToString(mac.Sum(nil))
-		
+
 		if !hmac.Equal([]byte(sig), []byte(expectedSig)) {
 			http.Error(w, "Invalid webhook signature", http.StatusUnauthorized)
 			return
 		}
 	}
-	
+
 	// Parse webhook
 	var webhook map[string]interface{}
 	if err := json.Unmarshal(body, &webhook); err != nil {
 		http.Error(w, "Invalid webhook", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Extract invoice ID and status
 	invoiceID, _ := webhook["invoiceId"].(string)
 	status, _ := webhook["status"].(string)
-	
+
 	if invoiceID == "" || status == "" {
 		http.Error(w, "Missing invoiceId or status", http.StatusBadRequest)
 		return
 	}
-	
+
 	// Update invoice status
 	ctx := r.Context()
 	if err := h.invoiceService.UpdateInvoiceStatus(ctx, invoiceID, status); err != nil {
 		log.Printf("Failed to update invoice status: %v", err)
 		// Don't fail webhook - BTCPay will retry
 	}
-	
+
 	w.WriteHeader(http.StatusOK)
 	w.Write([]byte("OK"))
+}
+
+// getWebhookSecret reads the webhook secret from mounted volume or env var
+func getWebhookSecret() string {
+	if data, err := os.ReadFile("/var/secrets/btcpay/webhook_secret"); err == nil {
+		return strings.TrimSpace(string(data))
+	}
+	return os.Getenv("BTCPAY_WEBHOOK_SECRET")
 }

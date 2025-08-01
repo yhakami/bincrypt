@@ -15,6 +15,12 @@ import (
 	"cloud.google.com/go/storage"
 )
 
+// InvoiceServiceInterface abstracts invoice operations for easier testing
+type InvoiceServiceInterface interface {
+	CreateInvoice(ctx context.Context, tier string) (*models.BTCPayInvoice, error)
+	UpdateInvoiceStatus(ctx context.Context, invoiceID, status string) error
+}
+
 // InvoiceService handles BTCPay invoices
 type InvoiceService struct {
 	bucket       *storage.BucketHandle
@@ -38,13 +44,13 @@ func (s *InvoiceService) CreateInvoice(ctx context.Context, tier string) (*model
 	if tier != "premium" {
 		return nil, fmt.Errorf("invalid tier: %s", tier)
 	}
-	
+
 	// Generate user ID for tracking
 	userID, err := utils.GenerateID()
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate user ID: %w", err)
 	}
-	
+
 	// Create BTCPay invoice
 	amount := 5.00
 	invoiceReq := map[string]interface{}{
@@ -56,27 +62,27 @@ func (s *InvoiceService) CreateInvoice(ctx context.Context, tier string) (*model
 			"duration": "1", // 1 month
 		},
 	}
-	
+
 	body, _ := json.Marshal(invoiceReq)
 	req, err := http.NewRequest("POST", s.btcpayURL+"/api/v1/invoices", bytes.NewReader(body))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
-	
+
 	req.Header.Set("Authorization", "token "+s.btcpayAPIKey)
 	req.Header.Set("Content-Type", "application/json")
-	
+
 	resp, err := s.httpClient.Do(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create invoice: %w", err)
 	}
 	defer resp.Body.Close()
-	
+
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		body, _ := io.ReadAll(resp.Body)
 		return nil, fmt.Errorf("BTCPay error (status %d): %s", resp.StatusCode, string(body))
 	}
-	
+
 	// Parse response
 	var btcpayResp struct {
 		ID           string `json:"id"`
@@ -86,7 +92,7 @@ func (s *InvoiceService) CreateInvoice(ctx context.Context, tier string) (*model
 	if err := json.NewDecoder(resp.Body).Decode(&btcpayResp); err != nil {
 		return nil, fmt.Errorf("failed to parse response: %w", err)
 	}
-	
+
 	// Store invoice in GCS
 	invoice := &models.Invoice{
 		ID:           btcpayResp.ID,
@@ -97,12 +103,12 @@ func (s *InvoiceService) CreateInvoice(ctx context.Context, tier string) (*model
 		CreatedAt:    time.Now().UTC(),
 		UpdatedAt:    time.Now().UTC(),
 	}
-	
+
 	if err := s.saveInvoice(ctx, invoice); err != nil {
 		// Log but don't fail - invoice is already created
 		_ = err
 	}
-	
+
 	return &models.BTCPayInvoice{
 		ID:           btcpayResp.ID,
 		CheckoutLink: btcpayResp.CheckoutLink,
@@ -123,10 +129,10 @@ func (s *InvoiceService) UpdateInvoiceStatus(ctx context.Context, invoiceID, sta
 			CreatedAt: time.Now().UTC(),
 		}
 	}
-	
+
 	invoice.Status = status
 	invoice.UpdatedAt = time.Now().UTC()
-	
+
 	return s.saveInvoice(ctx, invoice)
 }
 
@@ -135,12 +141,12 @@ func (s *InvoiceService) saveInvoice(ctx context.Context, invoice *models.Invoic
 	obj := s.bucket.Object(fmt.Sprintf("invoices/%s.json", invoice.ID))
 	writer := obj.NewWriter(ctx)
 	writer.ContentType = "application/json"
-	
+
 	if err := json.NewEncoder(writer).Encode(invoice); err != nil {
 		writer.Close()
 		return fmt.Errorf("failed to encode invoice: %w", err)
 	}
-	
+
 	return writer.Close()
 }
 
@@ -152,11 +158,11 @@ func (s *InvoiceService) getInvoice(ctx context.Context, invoiceID string) (*mod
 		return nil, err
 	}
 	defer reader.Close()
-	
+
 	var invoice models.Invoice
 	if err := json.NewDecoder(reader).Decode(&invoice); err != nil {
 		return nil, err
 	}
-	
+
 	return &invoice, nil
 }

@@ -89,6 +89,16 @@ Deploy to Cloud Run:
 ./tools/deploy.sh
 ```
 
+**Estimated Monthly Costs**
+
+| Service | Configuration | Monthly Cost |
+|---------|--------------|--------------|
+| Cloud Run | 1 CPU, 512Mi, 0 min instances | $0-5 |
+| Cloud Storage | <5GB | ~$0.10 |
+| **Total** | | **~$5/month** |
+
+The bundled Bitcoin node runs with `prune=10000` (~10GB) for free-tier disks.
+
 ### Docker
 
 Build and run with Docker:
@@ -104,6 +114,7 @@ docker run -p 8080:8080 --env-file .env bincrypt
 - `POST /api/invoice` - Create premium invoice
 - `POST /api/payhook` - Payment webhook
 - `GET /api/health` - Health check
+- `GET /healthz` - Cloud Run probe
 - `GET /api/metrics` - System metrics
 
 ## Security
@@ -113,6 +124,9 @@ docker run -p 8080:8080 --env-file .env bincrypt
 - Pastes are stored encrypted in Google Cloud Storage
 - Rate limiting prevents abuse
 - HMAC signature verification for payment webhooks
+- CORS locked down to https://bincrypt.io
+- Real client IP sanitized via NGINX
+- Secrets loaded from /var/secrets volumes
 
 ## License
 

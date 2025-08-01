@@ -24,13 +24,26 @@ fi
 # Get project configuration from environment or arguments
 PROJECT_ID=${PROJECT_ID:-$1}
 REGION=${REGION:-${2:-us-central1}}
-DOMAIN_NAME=${DOMAIN_NAME:-$3}
-ALERT_EMAIL=${ALERT_EMAIL:-$4}
+
+# Parse optional flags
+DOMAIN_NAME=${DOMAIN_NAME:-""}
+ALERT_EMAIL=${ALERT_EMAIL:-""}
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --domain)
+            DOMAIN_NAME="$2"
+            shift 2;;
+        --alert-email)
+            ALERT_EMAIL="$2"
+            shift 2;;
+        *)
+            shift;;
+    esac
+done
 
 if [ -z "$PROJECT_ID" ]; then
     echo -e "${RED}Error: PROJECT_ID not set${NC}"
-    echo "Usage: PROJECT_ID=your-project-id ./deploy.sh"
-    echo "   or: ./deploy.sh your-project-id [region] [domain] [alert-email]"
+    echo "Usage: PROJECT_ID=your-project-id ./deploy.sh [--domain example.com] [--alert-email you@domain]"
     exit 1
 fi
 

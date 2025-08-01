@@ -82,7 +82,7 @@ steps:
       - '--min-instances=0'
       - '--max-instances=3'
       - '--concurrency=100'
-      - '--timeout=300'
+      - '--timeout=30s'
       - '--set-env-vars=GOOGLE_CLOUD_PROJECT=${_PROJECT_ID}'
       - '--set-secrets=BTCPAY_POSTGRES=btcpay-postgres-connection:latest,BTCPAY_EXTERNALURL=btcpay-external-url:latest'
       - '--vpc-connector=projects/${_PROJECT_ID}/locations/${_REGION}/connectors/btcpay-connector'
@@ -90,7 +90,7 @@ steps:
       - '--execution-environment=gen2'
       - '--labels=app=btcpay,environment=production'
       - '--ingress=all'
-      - '--health-check-path=/api/v1/health'
+      - '--health-check-path=/healthz'
     waitFor: ['push-btcpay', 'setup-service-account']
 
   # Step 5: Configure Cloud Run service for HTTPS
@@ -123,7 +123,7 @@ steps:
           --display-name="BTCPay Server Uptime Check" \
           --resource-type=uptime-url \
           --host-header="btcpay.${_PROJECT_ID}.run.app" \
-          --path="/api/v1/health" \
+          --path="/healthz" \
           --port=443 \
           --use-ssl \
           --check-frequency=60s
