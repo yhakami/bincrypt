@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News - BinCrypt</title>
+    <meta name="description" content="Latest updates and news from BinCrypt - browser-side encrypted pastebin">
+    <meta name="robots" content="index, follow">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" integrity="sha384-l8f0VcPi/M1iHPv8egOnY/15TDwqgbOR1anMIJWvU6nLRgZVLTLSaNqi/TOoT5Fh" crossorigin="anonymous"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style nonce="{{CSP_NONCE}}">
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg: #000;
+            --surface: #0a0a0a;
+            --border: #222;
+            --text: #fff;
+            --text-dim: #888;
+            --accent: #fff;
+        }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        /* Header */
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 0;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        
+        nav {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        nav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        
+        nav a:hover {
+            color: var(--text);
+        }
+        
+        nav a.active {
+            color: var(--text);
+        }
+        
+        /* Main Container */
+        .container {
+            max-width: 900px;
+            margin: 3rem auto;
+            padding: 0 2rem;
+        }
+        
+        /* Page Header */
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .page-subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+        }
+        
+        /* News Items */
+        .news-list {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        
+        .news-item {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            transition: border-color 0.2s;
+        }
+        
+        .news-item:hover {
+            border-color: #444;
+        }
+        
+        .news-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+        }
+        
+        .news-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .news-date {
+            color: var(--text-dim);
+            font-size: 0.875rem;
+            font-family: 'JetBrains Mono', monospace;
+            white-space: nowrap;
+        }
+        
+        .news-content {
+            color: var(--text-dim);
+            line-height: 1.7;
+        }
+        
+        .news-tags {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .news-tag {
+            background: #111;
+            color: var(--text-dim);
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        
+        .news-tag.security { color: #ef4444; background: rgba(239, 68, 68, 0.1); }
+        .news-tag.feature { color: #10b981; background: rgba(16, 185, 129, 0.1); }
+        .news-tag.update { color: #3b82f6; background: rgba(59, 130, 246, 0.1); }
+        .news-tag.maintenance { color: #f59e0b; background: rgba(245, 158, 11, 0.1); }
+        
+        /* Links */
+        a {
+            color: var(--text);
+            text-decoration: underline;
+            text-decoration-color: var(--text-dim);
+            transition: text-decoration-color 0.2s;
+        }
+        
+        a:hover {
+            text-decoration-color: var(--text);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 0 1rem;
+            }
+            
+            nav {
+                gap: 1rem;
+            }
+            
+            .container {
+                padding: 0 1rem;
+                margin: 2rem auto;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .news-item {
+                padding: 1.5rem;
+            }
+            
+            .news-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <a href="/" style="color: inherit; text-decoration: none;">BinCrypt</a>
+            </div>
+            <nav>
+                <a href="/">HOME</a>
+                <a href="/news" class="active">NEWS</a>
+                <a href="/about">ABOUT</a>
+            </nav>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">News & Updates</h1>
+            <p class="page-subtitle">Stay informed about the latest security improvements and features</p>
+        </div>
+        
+        <div class="news-list">
+            <!-- News items will be added here -->
+        </div>
+    </div>
+    
+    <footer style="border-top: 1px solid var(--border); margin-top: 4rem; padding: 2rem 0; text-align: center;">
+        <div style="max-width: 900px; margin: 0 auto; padding: 0 2rem;">
+            <p style="color: var(--text-dim); font-size: 0.875rem; margin-bottom: 0.5rem;">
+                This software is free and open source under the AGPL-3.0 license.
+            </p>
+            <p style="color: var(--text-dim); font-size: 0.875rem;">
+                <a href="https://github.com/yhakami/bincrypt" style="color: var(--text); text-decoration: none;" target="_blank" rel="noopener">View Source Code on GitHub</a>
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

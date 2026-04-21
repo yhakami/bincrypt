@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About - BinCrypt</title>
+    <meta name="description" content="Learn about BinCrypt's browser-side encryption, privacy notes, and terms of service">
+    <meta name="robots" content="index, follow">
+    <meta http-equiv="X-Content-Type-Options" content="nosniff">
+    <meta http-equiv="X-Frame-Options" content="DENY">
+    <meta http-equiv="X-XSS-Protection" content="1; mode=block">
+    <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" integrity="sha384-l8f0VcPi/M1iHPv8egOnY/15TDwqgbOR1anMIJWvU6nLRgZVLTLSaNqi/TOoT5Fh" crossorigin="anonymous"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    <style nonce="{{CSP_NONCE}}">
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg: #000;
+            --surface: #0a0a0a;
+            --border: #222;
+            --text: #fff;
+            --text-dim: #888;
+            --accent: #fff;
+        }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        /* Header */
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 0;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        
+        nav {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        nav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        
+        nav a:hover {
+            color: var(--text);
+        }
+        
+        nav a.active {
+            color: var(--text);
+        }
+        
+        /* Main Container */
+        .container {
+            max-width: 900px;
+            margin: 3rem auto;
+            padding: 0 2rem;
+        }
+        
+        /* Page Header */
+        .page-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .page-title {
+            font-size: 2.5rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+        
+        .page-subtitle {
+            color: var(--text-dim);
+            font-size: 1.1rem;
+        }
+        
+        /* Content Sections */
+        .content-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-content {
+            color: var(--text-dim);
+            line-height: 1.7;
+        }
+        
+        .section-content h3 {
+            color: var(--text);
+            font-size: 1.1rem;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+        }
+        
+        .section-content p {
+            margin-bottom: 1rem;
+        }
+        
+        .section-content ul, .section-content ol {
+            margin-bottom: 1rem;
+            padding-left: 2rem;
+        }
+        
+        .section-content li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .section-content strong {
+            color: var(--text);
+        }
+        
+        /* Links */
+        a {
+            color: var(--text);
+            text-decoration: underline;
+            text-decoration-color: var(--text-dim);
+            transition: text-decoration-color 0.2s;
+        }
+        
+        a:hover {
+            text-decoration-color: var(--text);
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 0 1rem;
+            }
+            
+            nav {
+                gap: 1rem;
+            }
+            
+            .container {
+                padding: 0 1rem;
+                margin: 2rem auto;
+            }
+            
+            .page-title {
+                font-size: 2rem;
+            }
+            
+            .content-section {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <a href="/" style="color: inherit; text-decoration: none;">BinCrypt</a>
+            </div>
+            <nav>
+                <a href="/">HOME</a>
+                <a href="/news">NEWS</a>
+                <a href="/about" class="active">ABOUT</a>
+            </nav>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="page-header">
+            <h1 class="page-title">About BinCrypt</h1>
+            <p class="page-subtitle">Browser-side encrypted pastebin for short-lived text sharing</p>
+        </div>
+        
+        <!-- EASY TO EDIT CONTENT STARTS HERE -->
+        
+        <div class="content-section">
+            <h2 class="section-title">What is BinCrypt?</h2>
+            <div class="section-content">
+                <p>BinCrypt is a pastebin for short-lived text sharing. If you set a password, encryption happens in your browser before upload and the server stores ciphertext.</p>
+                <p>No-password pastes are intentionally stored server-side as unencrypted paste data. Use that mode only when anyone with the link can read the content.</p>
+            </div>
+        </div>
+        
+        <div class="content-section">
+            <h2 class="section-title">Terms of Service</h2>
+            <div class="section-content">
+                <p><strong>Last Updated: August 23, 2025</strong></p>
+
+                <h3>1. Acceptance of Terms</h3>
+                <p>By accessing or using BinCrypt, you acknowledge that you have read, understood, and agree to be bound by these Terms. If you do not agree, do not use the Service.</p>
+
+                <h3>2. Service; Encrypted Mode</h3>
+                <p>For password-protected pastes, encryption occurs client-side; we do not possess decryption keys and should not receive plaintext. We store ciphertext and limited metadata (e.g., timestamps, size, expiry). No-password pastes are stored as unencrypted paste data.</p>
+
+                <h3>3. User Content & Responsibility</h3>
+                <p>You are solely responsible for all content you create, upload, store, transmit, or share using the Service, and for any consequences thereof. You represent and warrant that you have all rights necessary to do so and that your use complies with applicable law.</p>
+
+                <h3>4. Keys, Public Pastes, and Moderation</h3>
+                <p>If you publish content without a password or make decryption keys reasonably accessible (including sharing full URLs containing keys), you understand that such content may be accessible to anyone with the link and may be subject to moderation or removal upon credible abuse reports. We do not proactively monitor content but may, at our sole discretion, remove content, disable links, or block re‑uploads (including by hash) to address abuse.</p>
+
+                <h3>5. Prohibited Uses</h3>
+                <p>You will not use the Service to violate law; infringe intellectual property; distribute malware, spam, or exploits; harass, dox, or threaten others; or facilitate harm. We may suspend or terminate access for suspected violations.</p>
+
+                <h3>6. No Warranties</h3>
+                <p>THE SERVICE IS PROVIDED “AS IS” AND “AS AVAILABLE,” WITHOUT WARRANTIES OF ANY KIND, WHETHER EXPRESS, IMPLIED, OR STATUTORY, INCLUDING WITHOUT LIMITATION WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON‑INFRINGEMENT. We do not warrant uptime, availability, security beyond reasonable measures, or retention beyond configured expirations.</p>
+
+                <h3>7. Limitation of Liability</h3>
+                <p>TO THE MAXIMUM EXTENT PERMITTED BY LAW, IN NO EVENT SHALL BINCRYPT OR ITS OPERATORS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, EXEMPLARY, OR PUNITIVE DAMAGES, OR ANY LOSS OF DATA, PROFITS, OR REVENUE, ARISING OUT OF OR RELATING TO THE SERVICE, WHETHER BASED ON WARRANTY, CONTRACT, TORT (INCLUDING NEGLIGENCE), OR ANY OTHER LEGAL THEORY, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. IN NO EVENT SHALL OUR AGGREGATE LIABILITY EXCEED USD $100.</p>
+
+                <h3>8. Indemnification</h3>
+                <p>You agree to defend, indemnify, and hold harmless BinCrypt and its operators from and against any claims, liabilities, damages, losses, and expenses (including reasonable attorneys’ fees) arising out of or relating to your content or your use of the Service.</p>
+
+                <h3>9. Changes; Termination</h3>
+                <p>We may modify these Terms or the Service at any time. Continued use constitutes acceptance. We may suspend or terminate the Service or your access at our discretion.</p>
+
+                <h3>10. Contact</h3>
+                <p>Questions or abuse reports: contact us at the address provided on the site’s contact channel.</p>
+            </div>
+        </div>
+        
+        <div class="content-section">
+            <h2 class="section-title">Privacy Policy</h2>
+            <div class="section-content">
+                <h3>Data Collection</h3>
+                <p>We collect minimal data:</p>
+                <ul>
+                    <li>Encrypted paste content for password-protected pastes</li>
+                    <li>Unencrypted paste content when you choose no-password mode</li>
+                    <li>Paste metadata (creation time, expiration date)</li>
+                    <li>No personal information is collected</li>
+                    <li>No cookies or tracking</li>
+                </ul>
+                
+                <h3>Data Retention</h3>
+                <p>Pastes are automatically deleted after their expiration period (default: 7 days). Deleted data is permanently removed and cannot be recovered.</p>
+                
+                <h3>Security</h3>
+                <p>Password-protected paste content is encrypted client-side using AES-256-GCM before transmission. No-password paste content is protected by link access, expiration, and moderation controls.</p>
+            </div>
+        </div>
+        
+        <!-- EASY TO EDIT CONTENT ENDS HERE -->
+        
+    </div>
+    
+    <footer style="border-top: 1px solid var(--border); margin-top: 4rem; padding: 2rem 0; text-align: center;">
+        <div style="max-width: 900px; margin: 0 auto; padding: 0 2rem;">
+            <p style="color: var(--text-dim); font-size: 0.875rem; margin-bottom: 0.5rem;">
+                This software is free and open source under the AGPL-3.0 license.
+            </p>
+            <p style="color: var(--text-dim); font-size: 0.875rem;">
+                <a href="https://github.com/yhakami/bincrypt" style="color: var(--text); text-decoration: none;" target="_blank" rel="noopener">View Source Code on GitHub</a>
+            </p>
+        </div>
+    </footer>
+</body>
+</html>

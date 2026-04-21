@@ -1,0 +1,1950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BinCrypt - Browser-Side Encrypted Pastebin</title>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js" integrity="sha384-l8f0VcPi/M1iHPv8egOnY/15TDwqgbOR1anMIJWvU6nLRgZVLTLSaNqi/TOoT5Fh" crossorigin="anonymous"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet" integrity="sha384-wFjoQjtV1y5jVHbt0p35Ui8aV8GVpEZkyF99OXWqP/eNJDU93D3Ugxkoyh6Y2I4A" crossorigin="anonymous" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js" integrity="sha384-06z5D//U/xpvxZHuUz92xBvq3DqBBFi7Up53HRrbV7Jlv7Yvh/MZ7oenfUe9iCEt" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/plugins/autoloader/prism-autoloader.min.js" integrity="sha384-Uq05+JLko69eOiPr39ta9bh7kld5PKZoU+fF7g0EXTAriEollhZ+DrN8Q/Oi8J2Q" crossorigin="anonymous"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/dark.css" integrity="sha384-heUUtXw0Djj2DElfLOVPlASSWFKNL3JDY6s3FEqQD03GYyWOeophY5DsfEG40sYX" crossorigin="anonymous">
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js" integrity="sha384-5JqMv4L/Xa0hfvtF06qboNdhvuYXUku9ZrhZh3bSk8VXF0A/RuSLHpLsSV9Zqhl6" crossorigin="anonymous"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono&display=swap" rel="stylesheet">
+    
+    <!-- Firebase Configuration -->
+    <script type="module" nonce="{{CSP_NONCE}}">
+        // Import the functions you need from the SDKs you need
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+        
+        // Fetch configuration from backend with defensive error handling
+        fetch('/api/config')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Config fetch failed');
+                }
+                return response.json();
+            })
+            .then(config => {
+                // Validate config is an object
+                if (!config || typeof config !== 'object') {
+                    throw new Error('Invalid config format');
+                }
+
+                if (config.firebase && typeof config.firebase === 'object') {
+                    // Initialize Firebase with dynamic config
+                    const app = initializeApp(config.firebase);
+                    window.firebase = app;
+                }
+
+                // Store config for other parts of the app
+                window.appConfig = config;
+            })
+            .catch(error => {
+                // Set empty config to prevent null reference errors
+                window.appConfig = {};
+                console.error('Failed to load configuration');
+            });
+    </script>
+    
+    <style nonce="{{CSP_NONCE}}">
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        :root {
+            --bg: #000;
+            --surface: #0a0a0a;
+            --border: #222;
+            --text: #fff;
+            --text-dim: #888;
+            --accent: #fff;
+        }
+        
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        
+        /* Header */
+        header {
+            border-bottom: 1px solid var(--border);
+            padding: 1.5rem 0;
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+        }
+        
+        nav {
+            display: flex;
+            gap: 2rem;
+        }
+        
+        nav a {
+            color: var(--text-dim);
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+        
+        nav a:hover {
+            color: var(--text);
+        }
+        
+        /* Main Container */
+        .container {
+            max-width: 900px;
+            margin: 3rem auto;
+            padding: 0 2rem;
+        }
+        
+        /* Paste Area */
+        .paste-section {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .paste-header {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .char-count {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            color: var(--text-dim);
+        }
+
+        /* Lint UI */
+        .lint-status { display: inline-flex; align-items: center; gap: 0.4rem; padding: 0.25rem 0.5rem; border: 1px solid var(--border); border-radius: 999px; font-size: 0.75rem; cursor: pointer; }
+        .lint-status.ok { color: #78e08f; border-color: #1f3; }
+        .lint-status.warn { color: #f6b93b; border-color: #f6b93b55; }
+        .lint-status.err { color: #ee5253; border-color: #ee525366; }
+        .lint-panel { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin: 0 1.5rem 1.5rem; max-height: 200px; overflow: auto; }
+        .lint-item { display: flex; gap: 0.5rem; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); cursor: pointer; }
+        .lint-item:last-child { border-bottom: none; }
+        .lint-sev { width: 8px; height: 8px; border-radius: 50%; margin-top: 0.5rem; }
+        .sev-error { background: #ee5253; }
+        .sev-warning { background: #f6b93b; }
+        .sev-info { background: #60a5fa; }
+        .lint-text { color: var(--text-dim); font-size: 0.85rem; }
+        
+        textarea {
+            width: 100%;
+            min-height: 450px;
+            background: transparent;
+            color: var(--text);
+            border: none;
+            padding: 1.5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            line-height: 1.7;
+            resize: vertical;
+        }
+        
+        textarea:focus {
+            outline: none;
+        }
+        
+        /* Section Headers */
+        .section-header {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            margin-top: 2rem;
+            margin-bottom: 0.75rem;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+        
+        .section-header:hover {
+            color: var(--text);
+        }
+        
+        .chevron {
+            transition: transform 0.3s ease;
+        }
+        
+        /* Options Section */
+        .options-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .options-section.primary {
+            grid-template-columns: 2fr 1fr;
+        }
+        
+        .options-section.secondary {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .option-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .option-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .option-title {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text);
+        }
+        
+        /* Custom Toggle */
+        .toggle {
+            position: relative;
+            width: 32px;
+            height: 18px;
+        }
+        
+        .toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #333;
+            transition: .3s;
+            border-radius: 18px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 12px;
+            width: 12px;
+            left: 3px;
+            bottom: 3px;
+            background-color: #666;
+            transition: .3s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #fff;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(14px);
+            background-color: #000;
+        }
+        
+        /* Form Elements */
+        select, input[type="text"], input[type="password"] {
+            width: 100%;
+            background: #000;
+            color: var(--text);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+        
+        select:focus, input:focus {
+            outline: none;
+            border-color: #444;
+        }
+        
+        .option-description {
+            font-size: 0.75rem;
+            color: var(--text-dim);
+            margin-top: 0.5rem;
+        }
+        
+        /* Encryption Section */
+        .encryption-section {
+            margin-top: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .encryption-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--text-dim);
+            display: block;
+            margin-bottom: 0.75rem;
+        }
+        
+        .encryption-row {
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        
+        .password-field {
+            flex: 1;
+            position: relative;
+        }
+        
+        .password-input {
+            width: 100%;
+            padding: 0.75rem;
+            padding-right: 5rem;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1rem;
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+        }
+        
+        .password-actions {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            display: flex;
+            gap: 0.25rem;
+        }
+        
+        .icon-btn {
+            background: transparent;
+            border: none;
+            padding: 0.5rem;
+            cursor: pointer;
+            color: var(--text-dim);
+            transition: all 0.2s;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .icon-btn:hover:not(:disabled) {
+            background: var(--border);
+            color: var(--text);
+        }
+        
+        .icon-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        
+        .generate-btn-inline {
+            padding: 0.75rem 1.5rem;
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+        
+        .generate-btn-inline:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        
+        .password-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+            margin-bottom: 0.75rem;
+            display: block;
+        }
+        
+        .password-input-wrapper {
+            position: relative;
+        }
+        
+        .password-input {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+        }
+        
+        .password-strength {
+            display: flex;
+            gap: 4px;
+            margin-top: 0.5rem;
+        }
+        
+        .strength-bar {
+            flex: 1;
+            height: 3px;
+            background: #222;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .strength-bar.active {
+            background: #4ade80;
+        }
+        
+        /* Action Button */
+        .action-section {
+            margin-top: 2rem;
+            text-align: center;
+        }
+        
+        .encrypt-btn {
+            background: var(--accent);
+            color: #000;
+            border: none;
+            border-radius: 8px;
+            padding: 0.75rem 2rem;
+            font-size: 1rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .encrypt-btn:hover:not(:disabled) {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+        
+        .encrypt-btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+        
+        .encrypt-btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+        
+        /* Modal */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            overflow-y: auto;
+            padding: 2rem 0;
+        }
+
+        .modal-content {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 2.5rem;
+            max-width: 650px;
+            width: 90%;
+            text-align: center;
+            margin: auto;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        
+        .modal h2 {
+            font-size: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .url-display {
+            background: #000;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1.5rem 0;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.875rem;
+            word-break: break-all;
+            min-height: 3rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .typewriter {
+            overflow: hidden;
+            white-space: nowrap;
+            margin: 0 auto;
+            letter-spacing: .05em;
+        }
+        
+        .url-options {
+            display: flex;
+            gap: 1rem;
+            margin: 1.5rem 0;
+            justify-content: center;
+        }
+        
+        .url-option {
+            background: transparent;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .url-option:hover {
+            background: #111;
+            border-color: #444;
+        }
+        
+        .url-option.active {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .modal-btn {
+            flex: 1;
+            padding: 0.75rem 1.5rem;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            background: transparent;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+        
+        .modal-btn.primary {
+            background: var(--accent);
+            color: #000;
+            border-color: var(--accent);
+        }
+        
+        .modal-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .modal-btn:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        /* Security Warning Box */
+        .security-warning-box {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 1.5rem;
+            margin: 1.5rem 0;
+            text-align: left;
+        }
+
+        .warning-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .warning-icon {
+            font-size: 1.5rem;
+        }
+
+        .warning-header h3 {
+            margin: 0;
+            color: #856404;
+            font-size: 1.1rem;
+        }
+
+        .warning-content p {
+            color: #856404;
+            margin: 0;
+        }
+
+        .security-implications {
+            list-style: none;
+            padding: 0;
+            margin: 1rem 0;
+        }
+
+        .security-implications li {
+            padding: 0.5rem;
+            margin: 0.25rem 0;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .security-implications li.pro {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .security-implications li.con {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .maximum-security {
+            margin: 1rem 0;
+            padding: 1rem;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .maximum-security summary {
+            cursor: pointer;
+            font-weight: bold;
+            padding: 0.5rem;
+            user-select: none;
+            color: #856404;
+        }
+
+        .maximum-security summary:hover {
+            opacity: 0.8;
+        }
+
+        .security-mode-desc {
+            margin: 0.75rem 0;
+            color: #856404;
+        }
+
+        .separate-sharing {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+
+        .share-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .share-item label {
+            color: #856404;
+            font-size: 0.9rem;
+            text-align: left;
+        }
+
+        .share-input {
+            padding: 0.5rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            background: white;
+            color: #000;
+        }
+
+        .btn-copy {
+            padding: 0.5rem 1rem;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.875rem;
+            transition: background 0.2s;
+        }
+
+        .btn-copy:hover {
+            background: #0056b3;
+        }
+
+        .acknowledgment {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: white;
+            border-radius: 4px;
+        }
+
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            color: #856404;
+            font-size: 0.9rem;
+        }
+
+        .checkbox-label input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .security-tip {
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background: #e7f3ff;
+            border-left: 3px solid #007bff;
+            border-radius: 4px;
+            color: #004085;
+            font-size: 0.875rem;
+        }
+
+        /* Error Toast */
+        .error-toast {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            background: #991b1b;
+            color: #fff;
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            font-size: 0.875rem;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            animation: slideIn 0.3s ease;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+        
+        [x-cloak] { display: none !important; }
+        
+        /* Turnstile Captcha */
+        .turnstile-container {
+            margin: 1.5rem 0;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .cf-turnstile {
+            transform: scale(0.9);
+            transform-origin: center;
+        }
+        
+        @media (max-width: 768px) {
+            .cf-turnstile {
+                transform: scale(0.85);
+            }
+        }
+        
+        /* Inline style replacements */
+        .logo-link {
+            color: inherit;
+            text-decoration: none;
+        }
+        
+        .text-dim {
+            color: var(--text-dim);
+        }
+        
+        .text-dim-small {
+            color: var(--text-dim);
+            font-size: 0.875rem;
+        }
+        
+        .text-warning {
+            color: #f59e0b;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .clickable {
+            cursor: pointer;
+        }
+        
+        .select-spacing {
+            margin-top: 0.5rem;
+        }
+        
+        .chevron-transform {
+            transform: rotate(180deg);
+        }
+        
+        .chevron-transform-0 {
+            transform: rotate(0);
+        }
+        
+        .margin-bottom-1-5 {
+            margin-bottom: 1.5rem;
+        }
+        
+        
+        @media (max-width: 768px) {
+            .header-content {
+                padding: 0 1rem;
+            }
+            
+            nav {
+                gap: 1rem;
+            }
+            
+            .container {
+                padding: 0 1rem;
+                margin: 2rem auto;
+            }
+            
+            .options-section,
+            .options-section.primary,
+            .options-section.secondary {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body x-data="app()">
+    <!-- Fallback for when Alpine.js fails to load -->
+    <noscript>
+        <div style="background: #991b1b; color: white; padding: 1rem; text-align: center; position: fixed; top: 0; left: 0; right: 0; z-index: 9999;">
+            JavaScript is required to use BinCrypt. Please enable JavaScript in your browser settings.
+        </div>
+    </noscript>
+    <div id="alpine-fallback" style="background: #991b1b; color: white; padding: 1rem; text-align: center; position: fixed; top: 0; left: 0; right: 0; z-index: 9999; display: none;">
+        Failed to load required components. Please refresh the page or try a different browser.
+    </div>
+    <header>
+        <div class="header-content">
+            <div class="logo">
+                <a href="/" class="logo-link">BinCrypt</a>
+            </div>
+            <nav>
+                <a href="/news">NEWS</a>
+                <a href="/about">ABOUT</a>
+            </nav>
+        </div>
+    </header>
+    
+    <div class="container">
+        <div class="paste-section">
+            <div class="paste-header">
+                <span class="text-dim-small">Encrypted Paste</span>
+                <div style="display:flex; gap:0.75rem; align-items:center;">
+                    <div class="char-count" :class="{ 'warning': !isOverLimit && content.length > 0 && new TextEncoder().encode(content).length > maxSizeBytes * 0.9, 'error': isOverLimit }" x-text="stats"></div>
+                    <div class="lint-status" :class="lintSeverityClass" @click="lintOpen = !lintOpen" x-text="lintSummary"></div>
+                </div>
+            </div>
+            <textarea
+                x-ref="editor"
+                x-model="content"
+                @input="updateStats(); scheduleLint()"
+                @keydown="handleEditorKeydown($event)"
+                placeholder="Paste your text here..."
+                autofocus
+            ></textarea>
+            <div class="lint-panel" x-show="lintOpen" x-cloak>
+                <template x-if="lintTruncated">
+                    <div class="lint-item">
+                        <div class="lint-sev sev-info"></div>
+                        <div class="lint-text">Lint truncated for performance (large content).</div>
+                    </div>
+                </template>
+                <template x-for="d in diagnostics" :key="d.id">
+                    <div class="lint-item" @click="jumpTo(d.line, d.column)">
+                        <div :class="'lint-sev ' + (d.severity==='error'?'sev-error':(d.severity==='warning'?'sev-warning':'sev-info'))"></div>
+                        <div class="lint-text"><strong x-text="d.severity.toUpperCase()"></strong> at <span x-text="'L'+d.line+':'+d.column"></span> — <span x-text="d.message"></span></div>
+                    </div>
+                </template>
+                <template x-if="diagnostics.length===0 && !lintTruncated">
+                    <div class="lint-item">
+                        <div class="lint-sev sev-info"></div>
+                        <div class="lint-text">No issues found.</div>
+                    </div>
+                </template>
+            </div>
+        </div>
+        
+        <!-- Content Options -->
+        <div class="section-header clickable" @click="contentExpanded = !contentExpanded">
+            <span>Content Options</span>
+            <svg class="chevron" :class="contentExpanded ? 'chevron-transform' : 'chevron-transform-0'" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+        </div>
+        <div class="options-section primary" x-show="contentExpanded" x-transition>
+            <div class="option-card large">
+                <div class="option-header">
+                    <span class="option-title">Syntax Highlighting</span>
+                    <label class="toggle">
+                        <input type="checkbox" x-model="syntaxHighlight">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <select x-show="syntaxHighlight" x-model="language" class="select-spacing">
+                    <option value="plaintext">Plain Text</option>
+                    <option value="javascript">JavaScript</option>
+                    <option value="python">Python</option>
+                    <option value="go">Go</option>
+                    <option value="rust">Rust</option>
+                    <option value="html">HTML</option>
+                    <option value="css">CSS</option>
+                    <option value="json">JSON</option>
+                    <option value="bash">Bash</option>
+                    <option value="typescript">TypeScript</option>
+                    <option value="java">Java</option>
+                    <option value="cpp">C++</option>
+                    <option value="csharp">C#</option>
+                    <option value="php">PHP</option>
+                    <option value="ruby">Ruby</option>
+                    <option value="yaml">YAML</option>
+                    <option value="sql">SQL</option>
+                    <option value="markdown">Markdown</option>
+                </select>
+                <p class="option-description">Automatically highlight code syntax</p>
+            </div>
+            
+            <div class="option-card">
+                <div class="option-header">
+                    <span class="option-title">Expiration</span>
+                </div>
+                <input type="text" x-ref="datepicker" readonly class="clickable">
+                <p class="option-description">Auto-delete after this date</p>
+            </div>
+        </div>
+        
+        <!-- Security Options -->
+        <div class="section-header clickable" @click="securityExpanded = !securityExpanded">
+            <span>Security Options</span>
+            <svg class="chevron" :class="securityExpanded ? 'chevron-transform' : 'chevron-transform-0'" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+        </div>
+        <div class="options-section secondary" x-show="securityExpanded" x-transition>
+            <div class="option-card">
+                <div class="option-header">
+                    <span class="option-title">Burn After Read</span>
+                    <label class="toggle">
+                        <input type="checkbox" x-model="burnAfterRead">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <p class="option-description">Delete after first view</p>
+            </div>
+        </div>
+        
+        <!-- Encryption Key -->
+        <div class="encryption-section">
+            <label class="encryption-label">Encryption Password</label>
+            <div class="encryption-row">
+                <div class="password-field">
+                    <input 
+                        :type="showingPassword ? 'text' : 'password'" 
+                        x-model="encryptionPassword"
+                        class="password-input"
+                        placeholder="Generate or enter password (optional)"
+                        @input="checkPasswordStrength"
+                        @mouseenter="hovering = true"
+                        @mouseleave="hovering = false"
+                    >
+                    <div class="password-actions">
+                        <button
+                            @click="showingPassword = !showingPassword"
+                            class="icon-btn"
+                            :title="showingPassword ? 'Hide password' : 'Show password'"
+                        >
+                            <svg x-show="showingPassword" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+                            <svg x-show="!showingPassword" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 7c2.76 0 5 2.24 5 5 0 .65-.13 1.26-.36 1.83l2.92 2.92c1.51-1.26 2.7-2.89 3.43-4.75-1.73-4.39-6-7.5-11-7.5-1.4 0-2.74.25-3.98.7l2.16 2.16C10.74 7.13 11.35 7 12 7zM2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2zm4.31-.78l3.15 3.15.02-.16c0-1.66-1.34-3-3-3l-.17.01z"/></svg>
+                        </button>
+                        <button 
+                            @click="copyPassword" 
+                            class="icon-btn"
+                            title="Copy password"
+                            :disabled="!encryptionPassword"
+                        >
+                            <svg x-show="!passwordCopied" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M16 1H4c-1.1 0-2 .9-2 2v14h2V3h12V1zm3 4H8c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h11c1.1 0 2-.9 2-2V7c0-1.1-.9-2-2-2zm0 16H8V7h11v14z"/></svg>
+                            <svg x-show="passwordCopied" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4L9 16.2z"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <button 
+                    @click="generatePassword"
+                    class="generate-btn-inline"
+                >
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9l1.25-2.75L23 5l-2.75-1.25L19 1l-1.25 2.75L15 5l2.75 1.25L19 9zm-7.5.5L9 4 6.5 9.5 1 12l5.5 2.5L9 20l2.5-5.5L17 12l-5.5-2.5z"/></svg>
+                    Generate
+                </button>
+            </div>
+            <div class="password-strength" x-show="encryptionPassword">
+                <div class="strength-bar" :class="passwordStrength >= 1 ? 'active' : ''"></div>
+                <div class="strength-bar" :class="passwordStrength >= 2 ? 'active' : ''"></div>
+                <div class="strength-bar" :class="passwordStrength >= 3 ? 'active' : ''"></div>
+                <div class="strength-bar" :class="passwordStrength >= 4 ? 'active' : ''"></div>
+            </div>
+            <p class="text-dim" style="margin-top: 0.5rem; font-size: 0.9rem;">
+                Do not post your decryption password publicly. If you share the password together with the URL (or otherwise make it easily discoverable), anyone can view the paste and it may be moderated per the Terms.
+            </p>
+        </div>
+        
+        <!-- Turnstile Captcha -->
+        <div class="turnstile-container" x-show="turnstileSiteKey">
+            <div 
+                class="cf-turnstile" 
+                :data-sitekey="turnstileSiteKey"
+                data-callback="onTurnstileSuccess"
+                data-expired-callback="onTurnstileExpired"
+                data-error-callback="onTurnstileError"
+                data-theme="dark"
+                data-size="normal"
+            ></div>
+        </div>
+        
+        <div class="action-section">
+            <button 
+                @click="createPaste"
+                :disabled="!content || loading || isOverLimit || (turnstileSiteKey && !turnstileToken)"
+                class="encrypt-btn"
+            >
+                <span x-text="loading ? 'Creating...' : (isOverLimit ? 'Content too large' : (encryptionPassword ? 'Encrypt & Create Link' : 'Create Unencrypted Link'))"></span>
+            </button>
+        </div>
+        
+    </div>
+    
+    <!-- Success Modal -->
+    <div x-show="showModal" x-cloak class="modal" @click.self="showModal = false">
+        <div class="modal-content">
+            <h2 x-text="isUnencrypted ? '⚠️ Your Unencrypted Link' : 'Your Encrypted Link'"></h2>
+            <p x-show="isUnencrypted" class="text-warning">
+                Warning: This paste has no password protection. Anyone with the link can view it.
+            </p>
+            <p x-show="!isUnencrypted" class="text-dim" style="margin-top: 0.25rem;">
+                Share the password only with trusted recipients. If the password is posted publicly alongside the link, anyone can view the paste.
+            </p>
+            <p class="text-dim margin-bottom-1-5">Your shareable link:</p>
+
+            <div class="url-display">
+                <div class="typewriter" x-text="displayUrl"></div>
+            </div>
+
+            <!-- Security Warning for URL Fragment -->
+            <div x-show="!isUnencrypted && encryptionPassword" x-cloak class="security-warning-box">
+                <div class="warning-header">
+                    <span class="warning-icon">⚠️</span>
+                    <h3>Important Security Notice</h3>
+                </div>
+
+                <div class="warning-content">
+                    <p style="margin-bottom: 0.75rem;">Your encryption password is included in the share link (after the #). This means:</p>
+
+                    <ul class="security-implications">
+                        <li class="pro">✅ The server never sees your password</li>
+                        <li class="con">⚠️ The password will be saved in the recipient's browser history</li>
+                        <li class="con">⚠️ Anyone with access to their browser can see it</li>
+                        <li class="con">⚠️ Browser extensions may have access to URL fragments</li>
+                    </ul>
+
+                    <details class="maximum-security">
+                        <summary>🛡️ Maximum Security Mode (Click to expand)</summary>
+                        <p class="security-mode-desc">For highly sensitive content, share the link and password separately:</p>
+
+                        <div class="separate-sharing">
+                            <div class="share-item">
+                                <label><strong>1. Share this link:</strong></label>
+                                <input
+                                    type="text"
+                                    readonly
+                                    :value="shareLinkWithoutPassword"
+                                    class="share-input"
+                                    @click="$event.target.select()"
+                                />
+                                <button @click="copySeparate('link')" class="btn-copy">Copy Link</button>
+                            </div>
+
+                            <div class="share-item">
+                                <label><strong>2. Share this password separately (via Signal, etc.):</strong></label>
+                                <input
+                                    type="password"
+                                    readonly
+                                    :value="encryptionPassword"
+                                    class="share-input"
+                                    @click="$event.target.select()"
+                                />
+                                <button @click="copySeparate('password')" class="btn-copy">Copy Password</button>
+                            </div>
+                        </div>
+
+                        <p class="security-tip">💡 <strong>Tip:</strong> Send the link via one channel (email) and password via another (Signal, WhatsApp)</p>
+                    </details>
+
+                    <div class="acknowledgment">
+                        <label class="checkbox-label">
+                            <input type="checkbox" x-model="understoodSecurityRisk" />
+                            <span>I understand the risks of sharing the password in the URL</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions">
+                <button
+                    @click="copyUrl"
+                    class="modal-btn primary"
+                    :disabled="!isUnencrypted && encryptionPassword && !understoodSecurityRisk"
+                    :title="(!isUnencrypted && encryptionPassword && !understoodSecurityRisk) ? 'Please acknowledge security risks first' : 'Copy link'"
+                >
+                    Copy Link
+                </button>
+                <button
+                    x-show="!isUnencrypted && encryptionPassword"
+                    @click="showClearHistoryInstructions"
+                    class="modal-btn"
+                >
+                    🧹 Clear History
+                </button>
+                <button @click="showModal = false; resetForm()" class="modal-btn">Create Another</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Error Toast -->
+    <div x-show="error" x-cloak class="error-toast" x-text="error"></div>
+    
+    <script src="/static/app.js"></script>
+    <script nonce="{{CSP_NONCE}}">
+        function app() {
+            return {
+                content: '',
+                encryptionPassword: '',
+                syntaxHighlight: false,
+                language: 'plaintext',
+                expirationDate: null,
+                burnAfterRead: false,
+                loading: false,
+                error: '',
+                errorTimeoutId: null,
+                stats: '0 chars · 0 lines · 0 KB',
+                passwordStrength: 0,
+                passwordGenerated: false,
+                passwordCopied: false,
+                showingPassword: false,
+                contentExpanded: false,
+                securityExpanded: false,
+                
+                // Lint state
+                diagnostics: [],
+                lintOpen: false,
+                lintTimer: null,
+                lintTruncated: false,
+                
+                // Modal
+                showModal: false,
+                shareLink: '',
+                displayUrl: '',
+                pasteId: '',
+                isUnencrypted: false,
+                
+                // Turnstile
+                turnstileSiteKey: '',
+                turnstileToken: '',
+                turnstileWidgetId: null,
+
+                // Security acknowledgment
+                understoodSecurityRisk: false,
+                
+                // Computed properties
+                get maxSizeBytes() {
+                    // Use encrypted limit if password is set, unencrypted limit otherwise
+                    if (this.encryptionPassword) {
+                        return window.appConfig?.limits?.maxSizeBytesEncrypted || 393216; // 384KB for encrypted
+                    }
+                    return window.appConfig?.limits?.maxSizeBytesUnencrypted || 524288; // 512KB for unencrypted
+                },
+                
+                get maxSizeKB() {
+                    // Use encrypted limit if password is set, unencrypted limit otherwise
+                    if (this.encryptionPassword) {
+                        return window.appConfig?.limits?.maxSizeKBEncrypted || 384;
+                    }
+                    return window.appConfig?.limits?.maxSizeKBUnencrypted || 512;
+                },
+                
+                get isOverLimit() {
+                    const contentBytes = new TextEncoder().encode(this.content).length;
+
+                    if (this.encryptionPassword) {
+                        // For encrypted pastes, account for:
+                        // - JSON wrapper overhead (~50 bytes for metadata)
+                        // - Base64 encoding (33% expansion)
+                        // - Salt (16 bytes) + IV (12 bytes) + Auth tag (16 bytes) = 44 bytes crypto overhead
+                        const jsonOverhead = 100; // Conservative estimate for JSON.stringify wrapper
+                        const plaintextSize = contentBytes + jsonOverhead;
+                        const encryptedSize = Math.ceil(plaintextSize * 1.34) + 44;
+                        return encryptedSize > this.maxSizeBytes;
+                    }
+
+                    return contentBytes > this.maxSizeBytes;
+                },
+
+                get shareLinkWithoutPassword() {
+                    if (!this.shareLink) return '';
+                    return this.shareLink.split('#')[0];
+                },
+                
+                // Lint summary and class
+                get lintSummary() {
+                    const errs = this.diagnostics.filter(d => d.severity==='error').length;
+                    const warns = this.diagnostics.filter(d => d.severity==='warning').length;
+                    if (this.lintTruncated) return `${errs+warns} Issues (partial)`;
+                    if (errs===0 && warns===0) return 'No Issues';
+                    return `${errs} Errors, ${warns} Warnings`;
+                },
+                get lintSeverityClass() {
+                    const errs = this.diagnostics.some(d => d.severity==='error');
+                    const warns = this.diagnostics.some(d => d.severity==='warning');
+                    if (errs) return 'err';
+                    if (warns) return 'warn';
+                    return 'ok';
+                },
+                
+                init() {
+                    // Initialize date picker
+                    const today = new Date();
+                    const maxDate = new Date();
+                    maxDate.setDate(today.getDate() + 12);
+                    
+                    const defaultDate = new Date();
+                    defaultDate.setDate(today.getDate() + 7);
+                    
+                    // Guard against CDN failure
+                    if (typeof flatpickr === 'function') {
+                        flatpickr(this.$refs.datepicker, {
+                            theme: "dark",
+                            minDate: today,
+                            maxDate: maxDate,
+                            defaultDate: defaultDate,
+                            dateFormat: "Y-m-d",
+                            onChange: (selectedDates) => {
+                                // Sync selected date to Alpine state
+                                this.expirationDate = selectedDates[0] || defaultDate;
+                            }
+                        });
+                    } else {
+                        // Fallback: set input value manually if flatpickr failed to load
+                        if (this.$refs.datepicker) {
+                            this.$refs.datepicker.value = defaultDate.toISOString().split('T')[0];
+                        }
+                        console.warn('flatpickr not loaded, using basic date input');
+                    }
+
+                    this.expirationDate = defaultDate;
+                    
+                    // Watch for content changes to auto-expand sections
+                    this.$watch('content', (value) => {
+                        if (value && !this.contentExpanded) {
+                            this.contentExpanded = true;
+                            this.securityExpanded = true;
+                        }
+                    });
+                    
+                    // Watch for password changes to update stats (different limits)
+                    this.$watch('encryptionPassword', () => {
+                        this.updateStats();
+                    });
+
+                    // IMPORTANT: Set up Turnstile callbacks BEFORE loading config
+                    // to prevent race condition where script loads before callbacks exist
+                    window.onTurnstileSuccess = (token) => {
+                        this.turnstileToken = token;
+                    };
+
+                    window.onTurnstileExpired = () => {
+                        this.turnstileToken = '';
+                        this.showError('Captcha expired. Please solve it again.');
+                    };
+
+                    window.onTurnstileError = () => {
+                        this.turnstileToken = '';
+                        this.showError('Captcha error. Please refresh and try again.');
+                    };
+
+                    // Load Turnstile configuration (callbacks are now ready)
+                    this.loadTurnstileConfig();
+                },
+                
+                async loadTurnstileConfig(retryCount = 0) {
+                    const MAX_RETRIES = 50; // 5 seconds max wait (50 * 100ms)
+
+                    // Wait for app config to be loaded
+                    if (!window.appConfig) {
+                        if (retryCount >= MAX_RETRIES) {
+                            console.warn('App config failed to load, Turnstile disabled');
+                            return;
+                        }
+                        setTimeout(() => this.loadTurnstileConfig(retryCount + 1), 100);
+                        return;
+                    }
+                    
+                    // Check if Turnstile is configured
+                    if (window.appConfig.turnstile && window.appConfig.turnstile.siteKey) {
+                        this.turnstileSiteKey = window.appConfig.turnstile.siteKey;
+                        
+                        // Dynamically load Turnstile script
+                        if (!window.turnstile && !document.querySelector('script[src*="turnstile"]')) {
+                            const script = document.createElement('script');
+                            script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js';
+                            script.async = true;
+                            script.defer = true;
+                            script.onload = () => {
+                                // Initialize widget after script loads
+                                this.initializeTurnstileWidget();
+                            };
+                            document.head.appendChild(script);
+                        } else if (window.turnstile) {
+                            // Script already loaded, initialize widget
+                            this.initializeTurnstileWidget();
+                        }
+                    }
+                    // If no Turnstile config, do nothing (dev mode)
+                },
+                
+                initializeTurnstileWidget() {
+                    this.$nextTick(() => {
+                        const container = document.querySelector('.cf-turnstile');
+                        if (container && !this.turnstileWidgetId && window.turnstile && this.turnstileSiteKey) {
+                            this.turnstileWidgetId = window.turnstile.render(container, {
+                                sitekey: this.turnstileSiteKey,
+                                callback: window.onTurnstileSuccess,
+                                'expired-callback': window.onTurnstileExpired,
+                                'error-callback': window.onTurnstileError,
+                                theme: 'dark',
+                                size: 'normal'
+                            });
+                        }
+                    });
+                },
+                
+                updateStats() {
+                    const bytes = new TextEncoder().encode(this.content).length;
+                    const chars = this.content.length;
+                    const lines = this.content.split('\n').length;
+                    
+                    const kb = (bytes / 1024).toFixed(1);
+                    
+                    // Show limit indicator when approaching or exceeding limit
+                    if (bytes > this.maxSizeBytes * 0.8) {
+                        const percentage = ((bytes / this.maxSizeBytes) * 100).toFixed(1);
+                        if (bytes > this.maxSizeBytes) {
+                            this.stats = `${kb} KB / ${this.maxSizeKB} KB (${percentage}%)`;
+                        } else {
+                            this.stats = `${kb} KB / ${this.maxSizeKB} KB`;
+                        }
+                    } else {
+                        this.stats = `${chars} chars · ${lines} lines · ${kb} KB`;
+                    }
+                    // also schedule lint
+                    this.scheduleLint();
+                },
+                
+                checkPasswordStrength() {
+                    const password = this.encryptionPassword;
+                    let strength = 0;
+
+                    if (password.length >= 8) strength++;
+                    if (password.length >= 12) strength++;
+                    if (/[a-z]/.test(password) && /[A-Z]/.test(password)) strength++;
+                    if (/[0-9]/.test(password) && /[^a-zA-Z0-9]/.test(password)) strength++;
+
+                    this.passwordStrength = strength;
+                },
+
+                calculateExpirySeconds() {
+                    // Calculate seconds from now until the selected expiration date
+                    if (!this.expirationDate) {
+                        // Fallback to 7 days if no date selected
+                        return 604800;
+                    }
+
+                    const now = new Date();
+                    const expiry = new Date(this.expirationDate);
+
+                    // Set expiry to end of day (23:59:59) for better UX
+                    expiry.setHours(23, 59, 59, 999);
+
+                    const diffMs = expiry.getTime() - now.getTime();
+                    const diffSeconds = Math.floor(diffMs / 1000);
+
+                    // Minimum 1 hour, maximum 12 days
+                    const minSeconds = 3600;
+                    const maxSeconds = 12 * 24 * 3600;
+
+                    return Math.max(minSeconds, Math.min(diffSeconds, maxSeconds));
+                },
+                
+                generatePassword() {
+                    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=[]{}|;:,.<>?';
+                    const length = 24;
+                    const charsLen = chars.length;
+                    // Calculate largest value that's a multiple of charsLen and <= 256
+                    const maxValidValue = 256 - (256 % charsLen);
+
+                    let password = '';
+
+                    // Use rejection sampling to eliminate modulo bias
+                    for (let i = 0; i < length; i++) {
+                        let randomByte;
+
+                        // Keep generating until we get a value in valid range
+                        do {
+                            randomByte = crypto.getRandomValues(new Uint8Array(1))[0];
+                        } while (randomByte >= maxValidValue);
+
+                        password += chars[randomByte % charsLen];
+                    }
+
+                    this.encryptionPassword = password;
+                    this.passwordGenerated = true;
+                    this.checkPasswordStrength();
+                },
+                
+                // copyPassword is implemented below using copyToClipboard().
+                
+                async createPaste() {
+                    // Check crypto support first (for encrypted pastes)
+                    if (this.encryptionPassword && window.cryptoSupported === false) {
+                        this.showError(window.cryptoError || 'Encryption not supported in this browser');
+                        return;
+                    }
+
+                    // Check if Turnstile is required but not solved
+                    if (this.turnstileSiteKey && !this.turnstileToken) {
+                        this.showError('Please complete the captcha');
+                        return;
+                    }
+                    
+                    // Check if no encryption password is provided
+                    if (!this.encryptionPassword) {
+                        const confirmed = confirm(
+                            "⚠️ No encryption password provided!\n\n" +
+                            "Without a password, anyone with the link can view this paste.\n\n" +
+                            "Are you sure you want to continue without encryption?"
+                        );
+                        
+                        if (!confirmed) {
+                            return;
+                        }
+                        
+                        // Mark as unencrypted for UI indication
+                        this.isUnencrypted = true;
+                    } else {
+                        this.isUnencrypted = false;
+                    }
+                    
+                    this.error = '';
+                    this.loading = true;
+                    
+                    try {
+                        const metadata = {
+                            syntaxHighlight: this.syntaxHighlight,
+                            language: this.syntaxHighlight ? this.language : 'plaintext',
+                            burnAfterRead: this.burnAfterRead
+                        };
+                        
+                        let requestBody;
+                        
+                        // Calculate expiry_seconds from the selected expiration date
+                        const expirySeconds = this.calculateExpirySeconds();
+
+                        if (this.encryptionPassword) {
+                            // Encrypted paste - send as ciphertext
+                            const fullContent = JSON.stringify({
+                                content: this.content,
+                                metadata: metadata
+                            });
+
+                            const ciphertext = await window.encryptPaste(fullContent, this.encryptionPassword);
+
+                            requestBody = {
+                                ciphertext: ciphertext,
+                                expiry_seconds: expirySeconds,
+                                burn_after_read: this.burnAfterRead,
+                                turnstile_token: this.turnstileToken
+                            };
+                        } else {
+                            // Unencrypted paste - send as plaintext with metadata
+                            requestBody = {
+                                plaintext: this.content,
+                                metadata: metadata,
+                                expiry_seconds: expirySeconds,
+                                burn_after_read: this.burnAfterRead,
+                                turnstile_token: this.turnstileToken
+                            };
+                        }
+                        
+                        // Create paste with timeout
+                        const controller = new AbortController();
+                        const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 second timeout
+
+                        let response;
+                        try {
+                            response = await fetch('/api/paste', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify(requestBody),
+                                signal: controller.signal
+                            });
+                        } finally {
+                            clearTimeout(timeoutId);
+                        }
+
+                        if (!response.ok) {
+                            throw new Error(await response.text());
+                        }
+
+                        const data = await response.json();
+
+                        // Validate response contains paste ID
+                        if (!data || typeof data.id !== 'string' || data.id.length === 0) {
+                            throw new Error('Invalid response: missing paste ID');
+                        }
+
+                        this.pasteId = data.id;
+
+                        // Include encryption key in URL fragment for encrypted pastes
+                        if (this.encryptionPassword) {
+                            this.shareLink = window.location.origin + '/p/' + data.id + '#' + encodeURIComponent(this.encryptionPassword);
+                        } else {
+                            this.shareLink = window.location.origin + '/p/' + data.id;
+                        }
+
+                        this.isUnencrypted = !this.encryptionPassword;
+                        
+                        // Show modal with typewriter effect
+                        this.showModal = true;
+                        this.typewriterEffect();
+                        
+                        // Reset Turnstile token for next paste
+                        this.resetTurnstile();
+                        
+                    } catch (err) {
+                        if (err.name === 'AbortError') {
+                            this.showError('Request timed out. Please try again.');
+                        } else {
+                            this.showError(err.message || 'Failed to create paste');
+                        }
+                        // Reset Turnstile on error too
+                        this.resetTurnstile();
+                    } finally {
+                        this.loading = false;
+                    }
+                },
+                
+                typewriterEffect() {
+                    const url = this.shareLink;
+                    this.displayUrl = '';
+                    let i = 0;
+                    
+                    const typeWriter = () => {
+                        if (i < url.length) {
+                            this.displayUrl += url.charAt(i);
+                            i++;
+                            setTimeout(typeWriter, 30);
+                        }
+                    };
+                    
+                    typeWriter();
+                },
+                
+                async hashPassword(password) {
+                    const encoder = new TextEncoder();
+                    const data = encoder.encode(password);
+                    const hash = await crypto.subtle.digest('SHA-256', data);
+                    return btoa(String.fromCharCode(...new Uint8Array(hash)));
+                },
+
+                async copyToClipboard(text) {
+                    // Try modern Clipboard API first (requires HTTPS)
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        try {
+                            await navigator.clipboard.writeText(text);
+                            return true;
+                        } catch (err) {
+                            // Fall through to fallback
+                        }
+                    }
+
+                    // Fallback for HTTP or browsers without Clipboard API
+                    const textarea = document.createElement('textarea');
+                    textarea.value = text;
+                    textarea.style.position = 'fixed';
+                    textarea.style.opacity = '0';
+                    textarea.style.left = '-9999px';
+                    document.body.appendChild(textarea);
+                    textarea.select();
+
+                    try {
+                        const successful = document.execCommand('copy');
+                        document.body.removeChild(textarea);
+                        return successful;
+                    } catch (err) {
+                        document.body.removeChild(textarea);
+                        return false;
+                    }
+                },
+
+                async copyPassword() {
+                    if (!this.encryptionPassword) return;
+
+                    const success = await this.copyToClipboard(this.encryptionPassword);
+                    if (success) {
+                        this.passwordCopied = true;
+                        setTimeout(() => {
+                            this.passwordCopied = false;
+                        }, 2000);
+                    } else {
+                        this.showError('Failed to copy password');
+                    }
+                },
+
+                async copyUrl() {
+                    const success = await this.copyToClipboard(this.shareLink);
+                    if (success) {
+                        this.showError('Link copied to clipboard!');
+                    } else {
+                        this.showError('Failed to copy link');
+                    }
+                },
+                
+                showError(message) {
+                    // Clear any pending timeout to prevent race condition
+                    if (this.errorTimeoutId) {
+                        clearTimeout(this.errorTimeoutId);
+                    }
+
+                    this.error = message;
+                    this.errorTimeoutId = setTimeout(() => {
+                        this.error = '';
+                        this.errorTimeoutId = null;
+                    }, 3000);
+                },
+                
+                resetForm() {
+                    this.content = '';
+                    this.encryptionPassword = '';
+                    this.syntaxHighlight = false;
+                    this.language = 'plaintext';
+                    this.burnAfterRead = false;
+                    this.passwordStrength = 0;
+                    this.passwordGenerated = false;
+                    this.passwordCopied = false;
+                    this.isUnencrypted = false;
+                    this.understoodSecurityRisk = false;
+                    this.updateStats();
+                    this.resetTurnstile();
+                    this.diagnostics = [];
+                    this.lintTruncated = false;
+                },
+                
+                resetTurnstile() {
+                    this.turnstileToken = '';
+                    if (window.turnstile && this.turnstileWidgetId !== null) {
+                        window.turnstile.reset(this.turnstileWidgetId);
+                    }
+                },
+
+                async copySeparate(type) {
+                    const text = type === 'link' ? this.shareLinkWithoutPassword : this.encryptionPassword;
+                    const success = await this.copyToClipboard(text);
+                    if (success) {
+                        this.showError(`${type === 'link' ? 'Link' : 'Password'} copied to clipboard!`);
+                    } else {
+                        this.showError(`Failed to copy ${type}`);
+                    }
+                },
+
+                showClearHistoryInstructions() {
+                    alert(
+                        'To clear this page from browser history:\n\n' +
+                        'Chrome/Edge:\n' +
+                        '1. Press Ctrl+H (Windows) or Cmd+Y (Mac)\n' +
+                        '2. Find this page and click ⋮ → Delete\n\n' +
+                        'Firefox:\n' +
+                        '1. Press Ctrl+Shift+H\n' +
+                        '2. Right-click this page → Forget About This Site\n\n' +
+                        'Safari:\n' +
+                        '1. Press Cmd+Y\n' +
+                        '2. Find this page → Right-click → Delete'
+                    );
+                },
+                
+                // Lint: lightweight, client-only
+                scheduleLint() {
+                    if (this.lintTimer) clearTimeout(this.lintTimer);
+                    this.lintTimer = setTimeout(() => this.runLint(), 250);
+                },
+                runLint() {
+                    const maxBytes = 200 * 1024; // 200KB limit for performance
+                    const enc = new TextEncoder();
+                    const bytesArr = enc.encode(this.content);
+                    this.lintTruncated = bytesArr.length > maxBytes;
+                    const text = new TextDecoder().decode(this.lintTruncated ? bytesArr.slice(0, maxBytes) : bytesArr);
+
+                    const diags = [];
+                    const lines = text.split('\n');
+                    let hasTabs = false, hasSpaces = false;
+                    
+                    // Line checks
+                    lines.forEach((ln, idx) => {
+                        const lineNo = idx + 1;
+                        if (/\s+$/.test(ln)) {
+                            diags.push(this.mkDiag('warning', lineNo, ln.length, 'Trailing whitespace'));
+                        }
+                        const indentMatch = ln.match(/^(\s*)/);
+                        if (indentMatch) {
+                            const ind = indentMatch[1];
+                            if (ind.includes('\t')) hasTabs = true;
+                            if (/^ +$/.test(ind) && ind.length>0) hasSpaces = true;
+                        }
+                        if (ln.length > 120) {
+                            diags.push(this.mkDiag('info', lineNo, 121, 'Line exceeds 120 characters'));
+                        }
+                    });
+                    if (hasTabs && hasSpaces) {
+                        diags.push(this.mkDiag('warning', 1, 1, 'Mixed tabs and spaces for indentation'));
+                    }
+                    
+                    // Bracket balance check
+                    const pairs = { '(': ')', '[': ']', '{': '}' };
+                    const openers = Object.keys(pairs);
+                    const closers = Object.values(pairs);
+                    const stack = [];
+                    let line = 1, col = 0;
+                    for (let i=0; i<text.length; i++) {
+                        const ch = text[i];
+                        if (ch === '\n') { line++; col=0; continue; }
+                        col++;
+                        if (openers.includes(ch)) {
+                            stack.push({ ch, line, col });
+                        } else if (closers.includes(ch)) {
+                            const match = stack.pop();
+                            if (!match || pairs[match.ch] !== ch) {
+                                diags.push(this.mkDiag('warning', line, col, `Unmatched '${ch}'`));
+                            }
+                        }
+                    }
+                    while (stack.length) {
+                        const rem = stack.pop();
+                        diags.push(this.mkDiag('warning', rem.line, rem.col, `Unclosed '${rem.ch}'`));
+                    }
+                    
+                    // JSON checks when explicitly selected
+                    const lang = this.syntaxHighlight ? this.language : '';
+                    if (lang === 'json') {
+                        const trimmed = text.trim();
+                        if (!(trimmed.startsWith('{') || trimmed.startsWith('['))) {
+                            diags.push(this.mkDiag('error', 1, 1, 'JSON should start with { or ['));
+                        }
+                        try { JSON.parse(text); } catch (e) {
+                            diags.push(this.mkDiag('error', 1, 1, 'Invalid JSON (unable to parse)'));
+                        }
+                        lines.forEach((ln, idx) => {
+                            if (/,\s*[}\]]\s*$/.test(ln)) {
+                                diags.push(this.mkDiag('warning', idx+1, ln.indexOf(',')+1, 'Trailing comma before closing bracket'));
+                            }
+                            const m = ln.match(/[\{,]\s*([A-Za-z_][A-Za-z0-9_]*)\s*:/);
+                            if (m) {
+                                diags.push(this.mkDiag('warning', idx+1, ln.indexOf(m[1])+1, 'JSON keys must be in double quotes'));
+                            }
+                        });
+                    }
+
+                    this.diagnostics = diags.slice(0, 200);
+                },
+                mkDiag(severity, line, column, message) {
+                    return { id: `${severity}-${line}-${column}-${message.slice(0,20)}` , severity, line, column, message };
+                },
+                jumpTo(line, column) {
+                    const ta = this.$refs.editor;
+                    const lines = this.content.split('\n');
+                    let pos = 0;
+                    for (let i=0; i<line-1 && i<lines.length; i++) pos += lines[i].length + 1;
+                    pos += Math.max(0, Math.min(column-1, (lines[line-1]||'').length));
+                    ta.focus();
+                    ta.selectionStart = ta.selectionEnd = pos;
+                    // Best-effort scroll; line-height ~ 18px for 14px font
+                    const approx = Math.max(0, (line-1) * 18 - 60);
+                    ta.scrollTop = approx;
+                },
+
+                // Editor helpers: pairs, tab indent, auto-indent
+                handleEditorKeydown(e) {
+                    const ta = this.$refs.editor;
+                    const val = ta.value;
+                    const start = ta.selectionStart;
+                    const end = ta.selectionEnd;
+
+                    // Tab / Shift+Tab
+                    if (e.key === 'Tab') {
+                        e.preventDefault();
+                        if (start !== end) {
+                            const selStart = val.lastIndexOf('\n', start - 1) + 1;
+                            const selEnd = val.indexOf('\n', end);
+                            const blockEnd = selEnd === -1 ? val.length : selEnd;
+                            const block = val.slice(selStart, blockEnd);
+                            const lines = block.split('\n');
+                            let newBlock;
+                            if (e.shiftKey) {
+                                newBlock = lines.map(l => l.replace(/^( {1,4}|\t)/, '')).join('\n');
+                            } else {
+                                newBlock = lines.map(l => '    ' + l).join('\n');
+                            }
+                            const before = val.slice(0, selStart);
+                            const after = val.slice(blockEnd);
+                            ta.value = before + newBlock + after;
+                            // Adjust selection
+                            const delta = newBlock.length - block.length;
+                            ta.selectionStart = selStart;
+                            ta.selectionEnd = end + delta;
+                        } else {
+                            if (e.shiftKey) {
+                                // Outdent current line
+                                const lineStart = val.lastIndexOf('\n', start - 1) + 1;
+                                const beforeLine = val.slice(lineStart, start);
+                                const removed = beforeLine.match(/^( {1,4}|\t)/);
+                                if (removed) {
+                                    const removeLen = removed[0].length;
+                                    ta.value = val.slice(0, lineStart) + beforeLine.slice(removeLen) + val.slice(start);
+                                    const pos = start - removeLen;
+                                    ta.selectionStart = ta.selectionEnd = pos;
+                                }
+                            } else {
+                                const insert = '    ';
+                                ta.value = val.slice(0, start) + insert + val.slice(end);
+                                const pos = start + insert.length;
+                                ta.selectionStart = ta.selectionEnd = pos;
+                            }
+                        }
+                        this.content = ta.value;
+                        return;
+                    }
+
+                    // Enter: keep indentation; add extra indent after opening brace
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        const lineStart = val.lastIndexOf('\n', start - 1) + 1;
+                        const line = val.slice(lineStart, start);
+                        const indentMatch = line.match(/^\s*/);
+                        const indent = indentMatch ? indentMatch[0] : '';
+                        const prevChar = val[start - 1] || '';
+                        const nextChar = val[start] || '';
+                        let extra = '';
+                        let closingInsert = '';
+                        if (prevChar === '{' && nextChar === '}') {
+                            extra = '    ';
+                            closingInsert = '\n' + indent;
+                        }
+                        const insert = '\n' + indent + extra;
+                        ta.value = val.slice(0, start) + insert + closingInsert + val.slice(end);
+                        const pos = start + insert.length;
+                        ta.selectionStart = ta.selectionEnd = pos;
+                        this.content = ta.value;
+                        return;
+                    }
+
+                    // Auto-pair brackets/quotes
+                    const pairs = { '(': ')', '[': ']', '{': '}', '"': '"', "'": "'", '`': '`' };
+                    if (pairs[e.key] && !e.ctrlKey && !e.metaKey && !e.altKey) {
+                        e.preventDefault();
+                        const open = e.key;
+                        const close = pairs[e.key];
+                        const selected = val.slice(start, end);
+                        const insert = open + selected + close;
+                        ta.value = val.slice(0, start) + insert + val.slice(end);
+                        ta.selectionStart = start + 1;
+                        ta.selectionEnd = end + 1;
+                        this.content = ta.value;
+                        return;
+                    }
+
+                    // Skip over existing closing char
+                    const closes = Object.values(pairs);
+                    if (closes.includes(e.key)) {
+                        const next = val.slice(start, start + 1);
+                        if (next === e.key) {
+                            e.preventDefault();
+                            ta.selectionStart = ta.selectionEnd = start + 1;
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <footer style="border-top: 1px solid var(--border); margin-top: 4rem; padding: 2rem 0; text-align: center;">
+        <div style="max-width: 900px; margin: 0 auto; padding: 0 2rem;">
+            <p style="color: var(--text-dim); font-size: 0.875rem; margin-bottom: 0.5rem;">
+                This software is free and open source under the AGPL-3.0 license.
+            </p>
+            <p style="color: var(--text-dim); font-size: 0.875rem;">
+                <a href="https://github.com/yhakami/bincrypt" style="color: var(--text); text-decoration: none;" target="_blank" rel="noopener">View Source Code on GitHub</a>
+            </p>
+        </div>
+    </footer>
+
+    <!-- Alpine.js load failure detection -->
+    <script nonce="{{CSP_NONCE}}">
+        // Check if Alpine.js loaded after a short delay
+        setTimeout(function() {
+            // Alpine adds __x attribute to initialized elements
+            var body = document.body;
+            if (!window.Alpine || !body._x_dataStack) {
+                var fallback = document.getElementById('alpine-fallback');
+                if (fallback) {
+                    fallback.style.display = 'block';
+                }
+            }
+        }, 3000);
+    </script>
+</body>
+</html>

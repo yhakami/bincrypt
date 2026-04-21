@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  # Firebase Storage Emulator (GCS)
+  firebase:
+    image: andreysenov/firebase-tools:latest
+    profiles: ["gcs"]
+    ports:
+      - "9199:9199"  # Storage
+      - "4000:4000"  # Emulator UI
+    volumes:
+      - ./firebase.json:/home/node/firebase.json
+      - ./firebase-data:/home/node/.firebase
+    command: firebase emulators:start --only storage --project demo-project
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9199"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # PostgreSQL (optional - for storage backend)
+  postgres:
+    image: postgres:16-alpine
+    profiles: ["postgres"]
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=bincrypt
+      - POSTGRES_USER=bincrypt
+      - POSTGRES_PASSWORD=CHANGE_ME_FOR_DEVELOPMENT
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bincrypt"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # Redis (optional - for rate limiting)
+  redis:
+    image: redis:7-alpine
+    profiles: ["gcs", "postgres"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # BinCrypt Application (GCS mode)
+  app-gcs:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - STORAGE_BACKEND=gcs
+      - STORAGE_EMULATOR_HOST=firebase:9199
+      - BUCKET_NAME=demo-project.appspot.com
+      - FIREBASE_PROJECT_ID=demo-project
+      - FIREBASE_STORAGE_BUCKET=demo-project.appspot.com
+      - RATE_LIMITER_TYPE=redis
+      - REDIS_URL=redis://redis:6379/0
+      - DEBUG=true
+    depends_on:
+      firebase:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src:ro
+    restart: unless-stopped
+    profiles: ["gcs"]
+
+  # BinCrypt Application (PostgreSQL mode)
+  app-postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - STORAGE_BACKEND=postgres
+      - DATABASE_URL=postgres://bincrypt:CHANGE_ME_FOR_DEVELOPMENT@postgres:5432/bincrypt?sslmode=disable
+      - RATE_LIMITER_TYPE=redis
+      - REDIS_URL=redis://redis:6379/0
+      - DEBUG=true
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./src:/app/src:ro
+    restart: unless-stopped
+    profiles: ["postgres"]
+
+  # BinCrypt Application (SQLite mode)
+  app-sqlite:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - STORAGE_BACKEND=sqlite
+      - SQLITE_PATH=/data/bincrypt.db
+      - RATE_LIMITER_TYPE=memory
+      - DEBUG=true
+    volumes:
+      - ./src:/app/src:ro
+      - sqlite-data:/data
+    user: "1000:1000"  # Explicitly match Dockerfile UID/GID
+    restart: unless-stopped
+    profiles: ["sqlite"]
+
+volumes:
+  postgres-data:
+  redis-data:
+  firebase-data:
+  sqlite-data:
+
+networks:
+  default:
+    name: bincrypt-network
