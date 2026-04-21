@@ -4,7 +4,8 @@ Encrypted pastebin for short-lived text sharing.
 
 Password-protected pastes are encrypted and decrypted in the browser with AES-256-GCM before anything is sent to the server. No-password pastes are intentionally stored as unencrypted paste data and should be treated as link-accessible public content.
 
-No independent third-party security audit has been completed. Review the code before using it for anything high-stakes.
+No independent third-party security audit has been completed. 
+Review the code before using it for anything high-stakes.
 
 ## What It Does
 
@@ -122,5 +123,3 @@ BinCrypt is dual-licensed:
 
 - AGPL-3.0 for the open-source version. See [LICENSE](LICENSE).
 - Commercial Apache-2.0 licenses are available from the maintainer. See [LICENSE-APACHE](LICENSE-APACHE).
-
-Created by [Hakamite](https://github.com/hakamite).
