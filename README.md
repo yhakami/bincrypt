@@ -119,7 +119,9 @@ go run golang.org/x/vuln/cmd/govulncheck@latest ./...
 
 ## License
 
-BinCrypt is dual-licensed:
+BinCrypt is offered under two licensing paths:
 
-- AGPL-3.0 for the open-source version. See [LICENSE](LICENSE).
-- Commercial Apache-2.0 licenses are available from the maintainer. See [LICENSE-APACHE](LICENSE-APACHE).
+- Public source: GNU Affero General Public License v3.0. See [LICENSE](LICENSE).
+- Commercial option: Apache-2.0 licenses are available from the maintainer by separate agreement. See [licenses/APACHE-2.0.txt](licenses/APACHE-2.0.txt).
+
+Copyright (C) 2025 [Hakamite](https://github.com/hakamite) (Yazeed M. Hakami).
